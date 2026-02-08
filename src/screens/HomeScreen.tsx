@@ -149,7 +149,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 onPress={() => navigation.navigate('Announcements')}
               >
                 <Text style={styles.seeAllText}>Lihat Semua</Text>
-                <Icon name="chevron-right" size={20} color={colors.primary} />
+                <Icon name="chevron_right" size={20} color={colors.primary} />
               </TouchableOpacity>
             </View>
 
@@ -197,14 +197,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                     </Text>
                     <View style={styles.readMoreContainer}>
                       <Text style={styles.readMoreText}>Baca Selengkapnya</Text>
-                      <Icon name="arrow-forward" size={16} color={colors.primary} />
+                      <Icon name="arrow_forward" size={16} color={colors.primary} />
                     </View>
                   </Animated.View>
                 </TouchableOpacity>
               ))
             ) : (
               <View style={styles.emptyState}>
-                <Icon name="info-outline" size={48} color={colors.textSecondary} />
+                <Icon name="info_outline" size={48} color={colors.textSecondary} />
                 <Text style={styles.emptyStateText}>Tidak ada pengumuman terbaru</Text>
               </View>
             )}
@@ -220,10 +220,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             <View style={styles.menuGrid}>
               {[
                 { title: 'Jadwal Misa', icon: 'event', screen: 'Masses', color: '#4299e1' },
-                { title: 'Donasi', icon: 'attach-money', screen: 'Donations', color: '#48bb78' },
+                { title: 'Donasi', icon: 'attach_money', screen: 'Donations', color: '#48bb78' },
                 { title: 'Profil', icon: 'person', screen: 'Profile', color: '#ed8936' },
                 { title: 'Pengumuman', icon: 'campaign', screen: 'Announcements', color: '#9f7aea' },
-                { title: 'Media', icon: 'play-circle-filled', screen: 'Media', color: '#f56565' },
+                { title: 'Media', icon: 'play_circle_filled', screen: 'Media', color: '#f56565' },
                 { title: 'Ubah Password', icon: 'lock', screen: 'ChangePassword', color: '#718096' },
               ].map((item, index) => (
                 <TouchableOpacity
