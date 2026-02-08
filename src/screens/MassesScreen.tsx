@@ -16,6 +16,7 @@ export const MassesScreen: React.FC = () => {
   const loadMasses = async () => {
     try {
       const data = await getMasses();
+      console.log('Fetched masses data:', data);
       setMasses(data);
     } catch (error: any) {
       console.error('Error loading masses:', error);
