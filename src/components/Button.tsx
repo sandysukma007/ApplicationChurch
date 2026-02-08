@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, Animated } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 import { colors, theme } from '../styles/theme';
 
 interface ButtonProps {
@@ -9,6 +10,7 @@ interface ButtonProps {
   disabled?: boolean;
   loading?: boolean;
   variant?: 'primary' | 'secondary' | 'gradient';
+  icon?: string;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -17,6 +19,7 @@ export const Button: React.FC<ButtonProps> = ({
   disabled = false,
   loading = false,
   variant = 'primary',
+  icon,
 }) => {
   const [scaleValue] = useState(new Animated.Value(1));
 
@@ -39,9 +42,12 @@ export const Button: React.FC<ButtonProps> = ({
       {loading ? (
         <ActivityIndicator color={variant === 'secondary' ? colors.primary : '#fff'} />
       ) : (
-        <Text style={[theme.buttonText, variant === 'secondary' && styles.secondaryText]}>
-          {title}
-        </Text>
+        <>
+          {icon && <Icon name={icon} size={20} color={variant === 'secondary' ? colors.primary : '#fff'} style={styles.icon} />}
+          <Text style={[theme.buttonText, variant === 'secondary' && styles.secondaryText]}>
+            {title}
+          </Text>
+        </>
       )}
     </>
   );
@@ -114,5 +120,8 @@ const styles = StyleSheet.create({
   },
   secondaryText: {
     color: colors.primary,
+  },
+  icon: {
+    marginRight: 8,
   },
 });

@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, Alert, Image, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { CustomAlert, CustomAlertRef } from '../components/CustomAlert';
@@ -46,8 +46,8 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
     try {
       const data: RegisterData = { email, password, full_name: fullName, role: 'jemaat' };
       await register(data);
-      alertRef.current?.show({ title: 'Success', message: 'Registration successful! Please check your email for verification code.', type: 'success' });
-      navigation.navigate('VerifyCode', { email, isPasswordReset: false });
+      alertRef.current?.show({ title: 'Success', message: 'Registration successful! You can now log in.', type: 'success' });
+      navigation.navigate('Login');
     } catch (error: any) {
       alertRef.current?.show({ title: 'Error', message: error.message, type: 'error' });
     } finally {
@@ -56,52 +56,55 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
   };
 
   return (
-    <ScrollView contentContainerStyle={theme.container}>
-      <View style={theme.card}>
-        <Image source={require('../assets/Logo-Santa-Clara-Bekasi-Transparant.png')} style={theme.logo} />
-        <Text style={theme.title}>Register</Text>
-        <View style={theme.inputContainer}>
-          <Input
-            placeholder="Full Name"
-            value={fullName}
-            onChangeText={setFullName}
-            error={errors.fullName}
-          />
-        </View>
-        <View style={theme.inputContainer}>
-          <Input
-            placeholder="Email"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            error={errors.email}
-          />
-        </View>
-        <View style={theme.inputContainer}>
-          <Input
-            placeholder="Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            error={errors.password}
-          />
-        </View>
-        <View style={theme.inputContainer}>
-          <Input
-            placeholder="Confirm Password"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-            error={errors.confirmPassword}
-          />
-        </View>
+    <View style={theme.container}>
+      <ScrollView>
+        <View style={theme.card}>
+          <Image source={require('../assets/Logo-Santa-Clara-Bekasi-Transparant.png')} style={theme.logo} />
+          <Text style={theme.title}>Register</Text>
+          <View style={theme.inputContainer}>
+            <Input
+              placeholder="Full Name"
+              value={fullName}
+              onChangeText={setFullName}
+              error={errors.fullName}
+            />
+          </View>
+          <View style={theme.inputContainer}>
+            <Input
+              placeholder="Email"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              error={errors.email}
+            />
+          </View>
+          <View style={theme.inputContainer}>
+            <Input
+              placeholder="Password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              error={errors.password}
+            />
+          </View>
+          <View style={theme.inputContainer}>
+            <Input
+              placeholder="Confirm Password"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry
+              error={errors.confirmPassword}
+            />
+          </View>
 
-        <Button title="Register" onPress={handleRegister} loading={loading} variant="gradient" />
-        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-          <Text style={theme.link}>Already have an account? Login</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+          <Button title="Register" onPress={handleRegister} loading={loading} variant="gradient" />
+          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+            <Text style={theme.link}>Already have an account? Login</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+      <CustomAlert ref={alertRef} />
+    </View>
   );
 };
 

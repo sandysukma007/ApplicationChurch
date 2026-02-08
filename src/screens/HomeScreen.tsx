@@ -1,5 +1,16 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, BackHandler, Alert } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  ScrollView,
+  Alert,
+  TouchableOpacity,
+  Animated,
+  Dimensions
+} from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Button } from '../components/Button';
 import { Loading } from '../components/Loading';
@@ -12,33 +23,33 @@ interface HomeScreenProps {
   navigation: any;
 }
 
+const { width } = Dimensions.get('window');
+
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [recentAnnouncements, setRecentAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
 
   useEffect(() => {
     loadRecentAnnouncements();
-
-    // Add back button handler
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-      Alert.alert(
-        'Exit App',
-        'Are you sure you want to exit the app?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Exit', onPress: () => BackHandler.exitApp() },
-        ]
-      );
-      return true; // Prevent default back behavior
-    });
-
-    return () => backHandler.remove();
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, []);
 
   const loadRecentAnnouncements = async () => {
     try {
       const data = await getAnnouncements();
-      // Get only the 3 most recent announcements
       setRecentAnnouncements(data.slice(0, 3));
     } catch (error: any) {
       console.error('Error loading announcements:', error);
@@ -49,17 +60,35 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('id-ID');
+    const options: Intl.DateTimeFormatOptions = {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    };
+    return date.toLocaleDateString('id-ID', options);
   };
 
   const handleLogout = async () => {
-    try {
-      await logout();
-      // Navigation will be handled by RootNavigator auth state change
-    } catch (error: any) {
-      console.error('Logout error:', error);
-      Alert.alert('Error', 'Failed to logout. Please try again.');
-    }
+    Alert.alert(
+      'Konfirmasi Logout',
+      'Apakah Anda yakin ingin keluar?',
+      [
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await logout();
+            } catch (error: any) {
+              console.error('Logout error:', error);
+              Alert.alert('Error', 'Gagal logout. Silakan coba lagi.');
+            }
+          }
+        },
+      ]
+    );
   };
 
   if (loading) {
@@ -67,165 +96,433 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Image source={require('../assets/Logo-Santa-Clara-Bekasi-Transparant.png')} style={styles.logo} />
-        <Text style={styles.title}>Welcome to Santa Clara App</Text>
-        <Text style={styles.subtitle}>Paroki Santa Clara Bekasi</Text>
-      </View>
+    <View style={styles.container}>
+      <LinearGradient
+        colors={['#f8f9fa', '#e9ecef']}
+        style={StyleSheet.absoluteFill}
+      />
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Pengumuman Terbaru</Text>
-        {recentAnnouncements.length > 0 ? (
-          recentAnnouncements.map((announcement) => (
-            <View key={announcement.id} style={styles.announcementCard}>
-              <Text style={styles.announcementTitle}>{announcement.title}</Text>
-              <Text style={styles.announcementDate}>{formatDate(announcement.created_at)}</Text>
-              <Text style={styles.announcementContent}>{announcement.content}</Text>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <Animated.View
+          style={[
+            styles.header,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }]
+            }
+          ]}
+        >
+          <LinearGradient
+            colors={['#1a365d', colors.primary]}
+            style={styles.headerGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            <View style={styles.logoContainer}>
+              <Image
+                source={require('../assets/Logo-Santa-Clara-Bekasi-Transparant.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+              <View style={styles.logoOverlay} />
             </View>
-          ))
-        ) : (
-          <Text style={styles.noData}>Tidak ada pengumuman terbaru</Text>
-        )}
-      </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Menu Utama</Text>
-        <View style={styles.buttonGrid}>
-          <Button
-            title="Jadwal Misa"
-            onPress={() => navigation.navigate('Masses')}
-            variant="primary"
-          />
-          <Button
-            title="Donasi"
-            onPress={() => navigation.navigate('Donations')}
-            variant="primary"
-          />
-          <Button
-            title="Profil"
-            onPress={() => navigation.navigate('Profile')}
-            variant="primary"
-          />
-          <Button
-            title="Pengumuman"
-            onPress={() => navigation.navigate('Announcements')}
-            variant="primary"
-          />
-          <Button
-            title="Media"
-            onPress={() => navigation.navigate('Media')}
-            variant="primary"
-          />
+            <View style={styles.welcomeContainer}>
+              <Text style={styles.welcomeText}>Selamat Datang</Text>
+              <Text style={styles.appName}>Santa Clara App</Text>
+              <Text style={styles.parishName}>Paroki Santa Clara Bekasi</Text>
+            </View>
+          </LinearGradient>
+        </Animated.View>
+
+        <View style={styles.content}>
+          {/* Pengumuman Section */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Icon name="campaign" size={24} color={colors.primary} />
+              <Text style={styles.sectionTitle}>Pengumuman Terbaru</Text>
+              <TouchableOpacity
+                style={styles.seeAllButton}
+                onPress={() => navigation.navigate('Announcements')}
+              >
+                <Text style={styles.seeAllText}>Lihat Semua</Text>
+                <Icon name="chevron-right" size={20} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
+
+            {recentAnnouncements.length > 0 ? (
+              recentAnnouncements.map((announcement, index) => (
+                <TouchableOpacity
+                  key={announcement.id}
+                  activeOpacity={0.9}
+                  onPress={() => navigation.navigate('AnnouncementDetail', { id: announcement.id })}
+                >
+                  <Animated.View
+                    style={[
+                      styles.announcementCard,
+                      {
+                        opacity: fadeAnim,
+                        transform: [{
+                          translateX: slideAnim.interpolate({
+                            inputRange: [0, 50],
+                            outputRange: [0, 50 * index]
+                          })
+                        }]
+                      }
+                    ]}
+                  >
+                    <LinearGradient
+                      colors={['#ffffff', '#f8f9fa']}
+                      style={StyleSheet.absoluteFill}
+                    />
+                    <View style={styles.announcementHeader}>
+                      <View style={styles.announcementDateBadge}>
+                        <Icon name="event" size={14} color={colors.white} />
+                        <Text style={styles.announcementDateBadgeText}>
+                          {formatDate(announcement.created_at).split(',')[0]}
+                        </Text>
+                      </View>
+                      <View style={styles.newBadge}>
+                        <Text style={styles.newBadgeText}>BARU</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.announcementTitle} numberOfLines={2}>
+                      {announcement.title}
+                    </Text>
+                    <Text style={styles.announcementContent} numberOfLines={3}>
+                      {announcement.content}
+                    </Text>
+                    <View style={styles.readMoreContainer}>
+                      <Text style={styles.readMoreText}>Baca Selengkapnya</Text>
+                      <Icon name="arrow-forward" size={16} color={colors.primary} />
+                    </View>
+                  </Animated.View>
+                </TouchableOpacity>
+              ))
+            ) : (
+              <View style={styles.emptyState}>
+                <Icon name="info-outline" size={48} color={colors.textSecondary} />
+                <Text style={styles.emptyStateText}>Tidak ada pengumuman terbaru</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Menu Utama Section */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Icon name="apps" size={24} color={colors.primary} />
+              <Text style={styles.sectionTitle}>Menu Utama</Text>
+            </View>
+
+            <View style={styles.menuGrid}>
+              {[
+                { title: 'Jadwal Misa', icon: 'event', screen: 'Masses', color: '#4299e1' },
+                { title: 'Donasi', icon: 'attach-money', screen: 'Donations', color: '#48bb78' },
+                { title: 'Profil', icon: 'person', screen: 'Profile', color: '#ed8936' },
+                { title: 'Pengumuman', icon: 'campaign', screen: 'Announcements', color: '#9f7aea' },
+                { title: 'Media', icon: 'play-circle-filled', screen: 'Media', color: '#f56565' },
+                { title: 'Ubah Password', icon: 'lock', screen: 'ChangePassword', color: '#718096' },
+              ].map((item, index) => (
+                <TouchableOpacity
+                  key={item.title}
+                  style={styles.menuItem}
+                  activeOpacity={0.7}
+                  onPress={() => navigation.navigate(item.screen)}
+                >
+                  <Animated.View
+                    style={[
+                      styles.menuIconContainer,
+                      {
+                        backgroundColor: item.color + '15',
+                        opacity: fadeAnim,
+                        transform: [{
+                          scale: fadeAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [0.8, 1]
+                          })
+                        }]
+                      }
+                    ]}
+                  >
+                    <Icon name={item.icon} size={28} color={item.color} />
+                  </Animated.View>
+                  <Text style={styles.menuItemText}>{item.title}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Logout Section */}
+          <TouchableOpacity
+            style={styles.logoutButton}
+            activeOpacity={0.7}
+            onPress={handleLogout}
+          >
+            <LinearGradient
+              colors={['#fed7d7', '#feb2b2']}
+              style={StyleSheet.absoluteFill}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            />
+            <Icon name="logout" size={20} color="#c53030" />
+            <Text style={styles.logoutText}>Keluar dari Aplikasi</Text>
+          </TouchableOpacity>
+
+          {/* Footer */}
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>© 2024 Paroki Santa Clara Bekasi</Text>
+            <Text style={styles.footerVersion}>Versi 1.0.0</Text>
+          </View>
         </View>
-      </View>
-
-      <View style={styles.logoutSection}>
-        <Button title="Logout" onPress={handleLogout} variant="secondary" />
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#f8f9fa',
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   header: {
+    height: 220,
+  },
+  headerGradient: {
+    flex: 1,
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: colors.white,
+    justifyContent: 'center',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  logoContainer: {
+    position: 'relative',
+    marginBottom: 16,
   },
   logo: {
     width: 100,
     height: 100,
-    marginBottom: 20,
+    borderRadius: 50,
+    borderWidth: 4,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
-  title: {
-    fontSize: 24,
+  logoOverlay: {
+    position: 'absolute',
+    top: -10,
+    left: -10,
+    right: -10,
+    bottom: -10,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  welcomeContainer: {
+    alignItems: 'center',
+  },
+  welcomeText: {
+    fontSize: 18,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontFamily: 'System',
+  },
+  appName: {
+    fontSize: 28,
     fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 10,
-    color: colors.primary,
+    color: colors.white,
+    marginVertical: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
-  subtitle: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 30,
-    color: colors.textSecondary,
+  parishName: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontStyle: 'italic',
+  },
+  content: {
+    flex: 1,
+    padding: 20,
+    paddingTop: 30,
   },
   section: {
-    padding: 20,
     backgroundColor: colors.white,
-    marginBottom: 10,
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+    elevation: 5,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 15,
+    fontWeight: '700',
     color: colors.text,
+    marginLeft: 10,
+    flex: 1,
+  },
+  seeAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  seeAllText: {
+    fontSize: 14,
+    color: colors.primary,
+    marginRight: 4,
   },
   announcementCard: {
     backgroundColor: colors.white,
-    padding: 15,
-    marginBottom: 10,
-    borderRadius: 12,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 8,
     elevation: 4,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.primary,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  announcementHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  announcementDateBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  announcementDateBadgeText: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  newBadge: {
+    backgroundColor: '#f56565',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  newBadgeText: {
+    color: colors.white,
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   announcementTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 5,
     color: colors.text,
-  },
-  announcementDate: {
-    fontSize: 14,
-    color: colors.textSecondary,
     marginBottom: 8,
+    lineHeight: 24,
   },
   announcementContent: {
-    fontSize: 16,
-    lineHeight: 22,
-    color: colors.text,
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+    marginBottom: 12,
   },
-  noData: {
+  readMoreContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingTop: 8,
+  },
+  readMoreText: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: '600',
+    marginRight: 4,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+  },
+  emptyStateText: {
     fontSize: 16,
     color: colors.textSecondary,
-    textAlign: 'center',
+    marginTop: 12,
     fontStyle: 'italic',
   },
-  buttonGrid: {
+  menuGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
-  buttonWithIcon: {
+  menuItem: {
+    width: (width - 80) / 3,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  menuIconContainer: {
+    width: 70,
+    height: 70,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  menuItemText: {
+    fontSize: 12,
+    color: colors.text,
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    height: 56,
+    borderRadius: 16,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
   },
-  buttonIcon: {
-    marginRight: 8,
+  logoutText: {
+    color: '#c53030',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 10,
   },
-  logoutSection: {
-    padding: 20,
-    backgroundColor: colors.white,
+  footer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  footerText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: 4,
+  },
+  footerVersion: {
+    fontSize: 11,
+    color: colors.textLight,
   },
 });

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, FlatList, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Image } from 'react-native';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { Loading } from '../components/Loading';

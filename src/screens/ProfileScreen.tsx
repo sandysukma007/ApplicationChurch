@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, Image, Linking } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { Loading } from '../components/Loading';
@@ -20,7 +20,7 @@ export const ProfileScreen: React.FC = () => {
     family_card_number: '',
     region: '',
     community: '',
-  });
+  } as ProfileFormData);
   const alertRef = useRef<CustomAlertRef>(null);
 
   useEffect(() => {
@@ -33,7 +33,6 @@ export const ProfileScreen: React.FC = () => {
       if (user) {
         const profileData = await getProfile(user.id);
         if (profileData) {
-          setProfile(profileData);
           setFormData({
             gender: profileData.gender,
             birth_date: profileData.birth_date || '',
@@ -140,6 +139,7 @@ export const ProfileScreen: React.FC = () => {
 
         <Button title="Save Profile" onPress={handleSave} loading={saving} />
       </View>
+      <CustomAlert ref={alertRef} />
     </ScrollView>
   );
 };

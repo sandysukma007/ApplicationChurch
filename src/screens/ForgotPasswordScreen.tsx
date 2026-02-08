@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, Alert, Image, TouchableOpacity } from 'react-native';
+import { View, Text, Image, TouchableOpacity } from 'react-native';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { CustomAlert, CustomAlertRef } from '../components/CustomAlert';

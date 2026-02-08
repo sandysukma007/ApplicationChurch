@@ -6,6 +6,7 @@ export const colors = {
   background: '#F8F6F4',
   text: '#2C3E50',
   textSecondary: '#666666',
+  textLight: '#999999',
   white: '#FFFFFF',
   error: '#E74C3C',
 };

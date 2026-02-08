@@ -4,7 +4,7 @@ import { colors } from '../styles/theme';
 
 interface InputProps {
   placeholder: string;
-  value: string;
+  value?: string;
   onChangeText: (text: string) => void;
   secureTextEntry?: boolean;
   error?: string;

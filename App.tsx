@@ -26,7 +26,7 @@ function App() {
   }, []);
 
   if (showSplash) {
-    return <SplashScreen navigation={{ replace: () => setShowSplash(false) }} />;
+    return <SplashScreen />;
   }
 
   return (

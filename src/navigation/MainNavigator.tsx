@@ -23,7 +23,7 @@ const Stack = createNativeStackNavigator<MainStackParamList>();
 export const MainNavigator: React.FC = () => {
   return (
     <Stack.Navigator>
-      <Stack.Screen name="Home" component={HomeScreen} />
+      <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Masses" component={MassesScreen} options={{ title: 'Jadwal Misa' }} />
       <Stack.Screen name="Donations" component={DonationsScreen} options={{ title: 'Donasi' }} />
       <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profil' }} />

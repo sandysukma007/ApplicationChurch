@@ -7,6 +7,27 @@ export const login = async (credentials: LoginCredentials) => {
     password: credentials.password,
   });
   if (error) throw error;
+
+  // Check if profile exists, if not, create one
+  const { error: profileError } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('id', data.user?.id)
+    .single();
+
+  if (profileError && profileError.code === 'PGRST116') { // No rows returned
+    const { error: insertError } = await supabase
+      .from('profiles')
+      .insert({
+        id: data.user?.id,
+        gender: 'male',
+        parish: 'Paroki Santa Clara',
+      });
+    if (insertError) throw insertError;
+  } else if (profileError) {
+    throw profileError;
+  }
+
   return data;
 };
 

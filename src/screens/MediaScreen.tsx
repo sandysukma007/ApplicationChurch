@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Image, Linking, Alert } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, StyleSheet, FlatList, Image, Linking } from 'react-native';
 import { ListItem } from '../components/ListItem';
 import { Loading } from '../components/Loading';
+import { CustomAlert, CustomAlertRef } from '../components/CustomAlert';
 import { getMedia } from '../utils/api';
 import { Media } from '../types';
 
