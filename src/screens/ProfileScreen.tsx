@@ -14,6 +14,8 @@ export const ProfileScreen: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [showBirthDatePicker, setShowBirthDatePicker] = useState(false);
   const [showBaptismDatePicker, setShowBaptismDatePicker] = useState(false);
+  const [originalGender, setOriginalGender] = useState<string | null>(null);
+  const [completeness, setCompleteness] = useState(0);
   const [formData, setFormData] = useState<ProfileFormData>({
     gender: 'male',
     birth_date: '',
@@ -26,6 +28,15 @@ export const ProfileScreen: React.FC = () => {
   } as ProfileFormData);
   const alertRef = useRef<CustomAlertRef>(null);
 
+  const calculateCompleteness = (data: ProfileFormData) => {
+    const fields = ['gender', 'birth_date', 'baptism_date', 'address', 'phone', 'family_card_number', 'region', 'community'];
+    let filled = 0;
+    fields.forEach(field => {
+      if (data[field as keyof ProfileFormData] && data[field as keyof ProfileFormData] !== '') filled++;
+    });
+    return Math.round((filled / fields.length) * 100);
+  };
+
   useEffect(() => {
     loadProfile();
   }, []);
@@ -36,8 +47,8 @@ export const ProfileScreen: React.FC = () => {
       if (user) {
         const profileData = await getProfile(user.id);
         if (profileData) {
-          setFormData({
-            gender: profileData.gender,
+          const data: ProfileFormData = {
+            gender: profileData.gender === 'male' ? 'male' : profileData.gender === 'female' ? 'female' : 'male',
             birth_date: profileData.birth_date || '',
             baptism_date: profileData.baptism_date || '',
             address: profileData.address || '',
@@ -45,7 +56,10 @@ export const ProfileScreen: React.FC = () => {
             family_card_number: profileData.family_card_number || '',
             region: profileData.region || '',
             community: profileData.community || '',
-          });
+          };
+          setFormData(data);
+          setOriginalGender(profileData.gender);
+          setCompleteness(calculateCompleteness(data));
         }
       }
     } catch (error: any) {
@@ -61,7 +75,7 @@ export const ProfileScreen: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         await updateProfile(user.id, formData);
-        alertRef.current?.show({ title: 'Success', message: 'Profile updated successfully', type: 'success' });
+        alertRef.current?.show({ title: 'Berhasil', message: 'Profil berhasil diperbarui', type: 'success' });
         loadProfile();
       }
     } catch (error: any) {
@@ -74,13 +88,17 @@ export const ProfileScreen: React.FC = () => {
   const onBirthDateChange = (event: any, selectedDate?: Date) => {
     const currentDate = selectedDate || new Date();
     setShowBirthDatePicker(Platform.OS === 'ios');
-    setFormData({ ...formData, birth_date: currentDate.toISOString().split('T')[0] });
+    const newData = { ...formData, birth_date: currentDate.toISOString().split('T')[0] };
+    setFormData(newData);
+    setCompleteness(calculateCompleteness(newData));
   };
 
   const onBaptismDateChange = (event: any, selectedDate?: Date) => {
     const currentDate = selectedDate || new Date();
     setShowBaptismDatePicker(Platform.OS === 'ios');
-    setFormData({ ...formData, baptism_date: currentDate.toISOString().split('T')[0] });
+    const newData = { ...formData, baptism_date: currentDate.toISOString().split('T')[0] };
+    setFormData(newData);
+    setCompleteness(calculateCompleteness(newData));
   };
 
   if (loading) {
@@ -91,33 +109,54 @@ export const ProfileScreen: React.FC = () => {
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Image source={require('../assets/Logo-Santa-Clara-Bekasi-Transparant.png')} style={styles.logo} />
-        <Text style={styles.title}>Profile</Text>
+        <Text style={styles.title}>Profil</Text>
+      </View>
+
+      <View style={styles.completenessContainer}>
+        <Text style={styles.completenessText}>Kelengkapan Profil: {completeness}%</Text>
+        <View style={styles.progressBar}>
+          <View style={[styles.progressFill, { width: `${completeness}%` }]} />
+        </View>
       </View>
 
       <View style={styles.form}>
-        <Text style={styles.label}>Gender:</Text>
+        <Text style={styles.label}>Jenis Kelamin:</Text>
         <View style={styles.genderContainer}>
           <View style={styles.genderButtonWrapper}>
             <Button
-              title="Male"
-              onPress={() => setFormData({ ...formData, gender: 'male' })}
+              title="Laki-laki"
+              onPress={() => {
+                if (originalGender === null) {
+                  const newData = { ...formData, gender: 'male' };
+                  setFormData(newData);
+                  setCompleteness(calculateCompleteness(newData));
+                }
+              }}
               variant={formData.gender === 'male' ? 'primary' : 'secondary'}
               size="small"
+              disabled={originalGender !== null}
             />
           </View>
           <View style={styles.genderButtonWrapper}>
             <Button
-              title="Female"
-              onPress={() => setFormData({ ...formData, gender: 'female' })}
+              title="Perempuan"
+              onPress={() => {
+                if (originalGender === null) {
+                  const newData = { ...formData, gender: 'female' };
+                  setFormData(newData);
+                  setCompleteness(calculateCompleteness(newData));
+                }
+              }}
               variant={formData.gender === 'female' ? 'primary' : 'secondary'}
               size="small"
+              disabled={originalGender !== null}
             />
           </View>
         </View>
 
         <TouchableOpacity onPress={() => setShowBirthDatePicker(true)} style={styles.dateInput}>
           <Input
-            placeholder="Birth Date (YYYY-MM-DD)"
+            placeholder="Tanggal Lahir (YYYY-MM-DD)"
             value={formData.birth_date}
             editable={false}
             pointerEvents="none"
@@ -135,7 +174,7 @@ export const ProfileScreen: React.FC = () => {
 
         <TouchableOpacity onPress={() => setShowBaptismDatePicker(true)} style={styles.dateInput}>
           <Input
-            placeholder="Baptism Date (YYYY-MM-DD)"
+            placeholder="Tanggal Baptis (YYYY-MM-DD)"
             value={formData.baptism_date}
             editable={false}
             pointerEvents="none"
@@ -152,37 +191,57 @@ export const ProfileScreen: React.FC = () => {
         )}
 
         <Input
-          placeholder="Address"
+          placeholder="Alamat"
           value={formData.address}
-          onChangeText={(text) => setFormData({ ...formData, address: text })}
+          onChangeText={(text) => {
+            const newData = { ...formData, address: text };
+            setFormData(newData);
+            setCompleteness(calculateCompleteness(newData));
+          }}
         />
 
         <Input
-          placeholder="Phone"
+          placeholder="Telepon"
           value={formData.phone}
-          onChangeText={(text) => setFormData({ ...formData, phone: text })}
+          onChangeText={(text) => {
+            const newData = { ...formData, phone: text };
+            setFormData(newData);
+            setCompleteness(calculateCompleteness(newData));
+          }}
           keyboardType="phone-pad"
         />
 
         <Input
-          placeholder="Family Card Number"
+          placeholder="Nomor Kartu Keluarga"
           value={formData.family_card_number}
-          onChangeText={(text) => setFormData({ ...formData, family_card_number: text })}
+          onChangeText={(text) => {
+            const newData = { ...formData, family_card_number: text };
+            setFormData(newData);
+            setCompleteness(calculateCompleteness(newData));
+          }}
         />
 
         <Input
-          placeholder="Region"
+          placeholder="Wilayah"
           value={formData.region}
-          onChangeText={(text) => setFormData({ ...formData, region: text })}
+          onChangeText={(text) => {
+            const newData = { ...formData, region: text };
+            setFormData(newData);
+            setCompleteness(calculateCompleteness(newData));
+          }}
         />
 
         <Input
-          placeholder="Community"
+          placeholder="Komunitas"
           value={formData.community}
-          onChangeText={(text) => setFormData({ ...formData, community: text })}
+          onChangeText={(text) => {
+            const newData = { ...formData, community: text };
+            setFormData(newData);
+            setCompleteness(calculateCompleteness(newData));
+          }}
         />
 
-        <Button title="Save Profile" onPress={handleSave} loading={saving} variant="gradient" />
+        <Button title="Simpan Profil" onPress={handleSave} loading={saving} variant="gradient" />
       </View>
       <CustomAlert ref={alertRef} />
     </ScrollView>
@@ -208,6 +267,29 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
+  },
+  completenessContainer: {
+    padding: 20,
+    backgroundColor: '#f9f9f9',
+    marginHorizontal: 20,
+    marginTop: 10,
+    borderRadius: 10,
+  },
+  completenessText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  progressBar: {
+    height: 10,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 5,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#4CAF50',
   },
   form: {
     padding: 20,

@@ -46,7 +46,7 @@ export const Button: React.FC<ButtonProps> = ({
       ) : (
         <>
           {icon && <Icon name={icon} size={size === 'small' ? 16 : 20} color={variant === 'secondary' ? colors.primary : '#fff'} style={styles.icon} />}
-          <Text style={[theme.buttonText, variant === 'secondary' && styles.secondaryText, variant === 'gradient' && styles.gradientText, size === 'small' && styles.smallText]}>
+          <Text style={[theme.buttonText, variant === 'secondary' && styles.secondaryText, (variant === 'gradient' || variant === 'primary') && styles.primaryText, size === 'small' && styles.smallText]}>
             {title}
           </Text>
         </>
@@ -54,7 +54,7 @@ export const Button: React.FC<ButtonProps> = ({
     </>
   );
 
-  if (variant === 'gradient') {
+  if (variant === 'gradient' || variant === 'primary') {
     return (
       <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
         <TouchableOpacity
@@ -123,6 +123,9 @@ const styles = StyleSheet.create({
   },
   secondaryText: {
     color: colors.primary,
+  },
+  primaryText: {
+    color: '#fff',
   },
   gradientText: {
     color: '#fff',

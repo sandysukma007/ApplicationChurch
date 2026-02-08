@@ -1,6 +1,7 @@
-# ProfileScreen UI Fixes
+# TODO: Update Profile Screen for Gender Restriction and Completeness Indicator
 
-- [x] Make gender radio buttons smaller (reduce height and font size in ProfileScreen.tsx)
-- [x] Replace birthdate input with DateTimePicker
-- [x] Replace baptism date input with DateTimePicker
-- [x] Ensure Save Profile button text is white (update Button.tsx for gradient variant)
+## Tasks
+- [ ] Modify ProfileScreen.tsx to disable gender selection if gender is not null in database
+- [ ] Add profile completeness progress bar to ProfileScreen.tsx
+- [ ] Translate all text in ProfileScreen.tsx to Indonesian
+- [ ] Test the changes to ensure gender cannot be updated if already set, and completeness bar works
