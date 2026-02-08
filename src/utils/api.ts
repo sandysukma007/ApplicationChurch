@@ -5,10 +5,9 @@ export const getProfile = async (userId: string): Promise<Profile | null> => {
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
-    .eq('id', userId)
-    .single();
+    .eq('id', userId);
   if (error) throw error;
-  return data;
+  return data ? data[0] : null;
 };
 
 export const updateProfile = async (userId: string, profileData: ProfileFormData): Promise<Profile> => {

@@ -8,7 +8,8 @@ import {
   Alert,
   TouchableOpacity,
   Animated,
-  Dimensions
+  Dimensions,
+  BackHandler
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -18,6 +19,7 @@ import { getAnnouncements } from '../utils/api';
 import { logout } from '../utils/auth';
 import { Announcement } from '../types';
 import { colors } from '../styles/theme';
+import { supabase } from '../supabaseClient';
 
 interface HomeScreenProps {
   navigation: any;
@@ -28,11 +30,15 @@ const { width } = Dimensions.get('window');
 export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [recentAnnouncements, setRecentAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userName, setUserName] = useState('');
+  const [angelusMinutes, setAngelusMinutes] = useState<number | null>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
 
   useEffect(() => {
     loadRecentAnnouncements();
+    loadUserProfile();
+    checkAngelusTime();
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -47,6 +53,36 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     ]).start();
   }, []);
 
+  useEffect(() => {
+    const backAction = () => {
+      Alert.alert(
+        'Konfirmasi Logout',
+        'Apakah Anda yakin ingin logout?',
+        [
+          { text: 'Batal', style: 'cancel' },
+          {
+            text: 'Logout',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await logout();
+                navigation.replace('Login');
+              } catch (error: any) {
+                console.error('Logout error:', error);
+                Alert.alert('Error', 'Gagal logout. Silakan coba lagi.');
+              }
+            }
+          },
+        ]
+      );
+      return true;
+    };
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+
+    return () => backHandler.remove();
+  }, [navigation]);
+
   const loadRecentAnnouncements = async () => {
     try {
       const data = await getAnnouncements();
@@ -56,6 +92,64 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadUserProfile = async () => {
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (user.user) {
+        const { data, error } = await supabase
+          .from('users')
+          .select('full_name')
+          .eq('id', user.user.id)
+          .single();
+        if (data && !error) {
+          setUserName(data.full_name);
+        }
+      }
+    } catch (error: any) {
+      console.error('Error loading user profile:', error);
+    }
+  };
+
+  const checkAngelusTime = () => {
+    const now = new Date();
+    const angelusTimes = [6, 12, 18]; // hours
+    let nextAngelus = null;
+    for (let hour of angelusTimes) {
+      const angelusTime = new Date(now);
+      angelusTime.setHours(hour, 0, 0, 0);
+      if (angelusTime > now) {
+        nextAngelus = angelusTime;
+        break;
+      }
+    }
+    if (!nextAngelus) {
+      // Next day 6 AM
+      nextAngelus = new Date(now);
+      nextAngelus.setDate(nextAngelus.getDate() + 1);
+      nextAngelus.setHours(6, 0, 0, 0);
+    }
+    const diffMs = nextAngelus.getTime() - now.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    if (diffMins <= 60) {
+      setAngelusMinutes(diffMins);
+    } else {
+      setAngelusMinutes(null);
+    }
+  };
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'pagi';
+    if (hour < 15) return 'siang';
+    if (hour < 18) return 'sore';
+    return 'malam';
+  };
+
+  const getCurrentTime = () => {
+    const now = new Date();
+    return now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
   };
 
   const formatDate = (dateString: string) => {
@@ -72,7 +166,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const handleLogout = async () => {
     Alert.alert(
       'Konfirmasi Logout',
-      'Apakah Anda yakin ingin keluar?',
+      'Apakah Anda yakin ingin logout?',
       [
         { text: 'Batal', style: 'cancel' },
         {
@@ -81,6 +175,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           onPress: async () => {
             try {
               await logout();
+              navigation.replace('Login');
             } catch (error: any) {
               console.error('Logout error:', error);
               Alert.alert('Error', 'Gagal logout. Silakan coba lagi.');
@@ -131,9 +226,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             </View>
 
             <View style={styles.welcomeContainer}>
-              <Text style={styles.welcomeText}>Selamat Datang</Text>
+              <Text style={styles.welcomeText}>
+                Selamat {getGreeting()} {userName || 'Pengguna'}, sekarang jam {getCurrentTime()}
+              </Text>
               <Text style={styles.appName}>Santa Clara App</Text>
               <Text style={styles.parishName}>Paroki Santa Clara Bekasi</Text>
+              {angelusMinutes !== null && (
+                <Text style={styles.angelusText}>Doa Angelus dalam {angelusMinutes} menit lagi</Text>
+              )}
             </View>
           </LinearGradient>
         </Animated.View>
@@ -211,7 +311,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           </View>
 
           {/* Menu Utama Section */}
-          <View style={styles.section}>
+          <View style={[styles.section, {backgroundColor: 'transparent', shadowColor: 'transparent', shadowOffset: {width: 0, height: 0}, shadowOpacity: 0, shadowRadius: 0, elevation: 0}]}>
             <View style={styles.sectionHeader}>
               <Icon name="apps" size={24} color={colors.primary} />
               <Text style={styles.sectionTitle}>Menu Utama</Text>
@@ -219,39 +319,51 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
             <View style={styles.menuGrid}>
               {[
-                { title: 'Jadwal Misa', icon: 'event', screen: 'Masses', color: '#4299e1' },
-                { title: 'Donasi', icon: 'attach_money', screen: 'Donations', color: '#48bb78' },
-                { title: 'Profil', icon: 'person', screen: 'Profile', color: '#ed8936' },
-                { title: 'Pengumuman', icon: 'campaign', screen: 'Announcements', color: '#9f7aea' },
-                { title: 'Media', icon: 'play_circle_filled', screen: 'Media', color: '#f56565' },
-                { title: 'Ubah Password', icon: 'lock', screen: 'ChangePassword', color: '#718096' },
-              ].map((item, index) => (
-                <TouchableOpacity
-                  key={item.title}
-                  style={styles.menuItem}
-                  activeOpacity={0.7}
-                  onPress={() => navigation.navigate(item.screen)}
-                >
-                  <Animated.View
-                    style={[
-                      styles.menuIconContainer,
-                      {
-                        backgroundColor: item.color + '15',
-                        opacity: fadeAnim,
-                        transform: [{
-                          scale: fadeAnim.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [0.8, 1]
-                          })
-                        }]
-                      }
-                    ]}
+                { title: 'Jadwal Misa', icon: 'event', screen: 'Masses', gradient: ['#4299e1', '#3182ce'] },
+                { title: 'Donasi', icon: 'attach_money', screen: 'Donations', gradient: ['#48bb78', '#38a169'] },
+                { title: 'Profil', icon: 'person', screen: 'Profile', gradient: ['#ed8936', '#dd6b20'] },
+                { title: 'Pengumuman', icon: 'campaign', screen: 'Announcements', gradient: ['#9f7aea', '#805ad5'] },
+                { title: 'Media', icon: 'play_circle_filled', screen: 'Media', gradient: ['#f56565', '#e53e3e'] },
+                { title: 'Ubah Password', icon: 'lock', screen: 'ChangePassword', gradient: ['#718096', '#4a5568'] },
+              ].map((item, index) => {
+                let iconName = item.icon;
+                // Fix icon names for MaterialIcons
+                if (item.icon === 'play_circle_filled') iconName = 'play-circle-filled';
+                if (item.icon === 'attach_money') iconName = 'attach-money';
+                return (
+                  <TouchableOpacity
+                    key={item.title}
+                    style={styles.menuItem}
+                    activeOpacity={0.8}
+                    onPress={() => navigation.navigate(item.screen)}
                   >
-                    <Icon name={item.icon} size={28} color={item.color} />
-                  </Animated.View>
-                  <Text style={styles.menuItemText}>{item.title}</Text>
-                </TouchableOpacity>
-              ))}
+                    <Animated.View
+                      style={[
+                        styles.menuIconWrapper,
+                        {
+                          opacity: fadeAnim,
+                          transform: [{
+                            scale: fadeAnim.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [0.8, 1]
+                            })
+                          }]
+                        }
+                      ]}
+                    >
+                      <LinearGradient
+                        colors={item.gradient}
+                        style={styles.menuIconContainer}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                      >
+                        <Icon name={iconName} size={32} color={colors.white} />
+                      </LinearGradient>
+                    </Animated.View>
+                    <Text style={styles.menuItemText}>{item.title}</Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
 
@@ -346,6 +458,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.8)',
     fontStyle: 'italic',
+  },
+  angelusText: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginTop: 4,
+    fontWeight: 'bold',
   },
   content: {
     flex: 1,
@@ -467,31 +585,32 @@ const styles = StyleSheet.create({
   menuGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
+    paddingHorizontal: 10,
   },
   menuItem: {
-    width: (width - 80) / 3,
+    width: (width - 100) / 3,
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 25,
+  },
+  menuIconWrapper: {
   },
   menuIconContainer: {
-    width: 70,
-    height: 70,
-    borderRadius: 20,
+    width: 80,
+    height: 80,
+    borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   menuItemText: {
-    fontSize: 12,
+    fontSize: 13,
     color: colors.text,
     textAlign: 'center',
-    fontWeight: '500',
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
   logoutButton: {
     flexDirection: 'row',

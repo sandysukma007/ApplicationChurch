@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Platform } from 'react-native';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { Loading } from '../components/Loading';
@@ -7,10 +7,13 @@ import { CustomAlert, CustomAlertRef } from '../components/CustomAlert';
 import { getProfile, updateProfile } from '../utils/api';
 import { ProfileFormData } from '../types';
 import { supabase } from '../supabaseClient';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 export const ProfileScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showBirthDatePicker, setShowBirthDatePicker] = useState(false);
+  const [showBaptismDatePicker, setShowBaptismDatePicker] = useState(false);
   const [formData, setFormData] = useState<ProfileFormData>({
     gender: 'male',
     birth_date: '',
@@ -68,6 +71,18 @@ export const ProfileScreen: React.FC = () => {
     }
   };
 
+  const onBirthDateChange = (event: any, selectedDate?: Date) => {
+    const currentDate = selectedDate || new Date();
+    setShowBirthDatePicker(Platform.OS === 'ios');
+    setFormData({ ...formData, birth_date: currentDate.toISOString().split('T')[0] });
+  };
+
+  const onBaptismDateChange = (event: any, selectedDate?: Date) => {
+    const currentDate = selectedDate || new Date();
+    setShowBaptismDatePicker(Platform.OS === 'ios');
+    setFormData({ ...formData, baptism_date: currentDate.toISOString().split('T')[0] });
+  };
+
   if (loading) {
     return <Loading />;
   }
@@ -82,29 +97,59 @@ export const ProfileScreen: React.FC = () => {
       <View style={styles.form}>
         <Text style={styles.label}>Gender:</Text>
         <View style={styles.genderContainer}>
-          <Button
-            title="Male"
-            onPress={() => setFormData({ ...formData, gender: 'male' })}
-            variant={formData.gender === 'male' ? 'primary' : 'secondary'}
-          />
-          <Button
-            title="Female"
-            onPress={() => setFormData({ ...formData, gender: 'female' })}
-            variant={formData.gender === 'female' ? 'primary' : 'secondary'}
-          />
+          <View style={styles.genderButtonWrapper}>
+            <Button
+              title="Male"
+              onPress={() => setFormData({ ...formData, gender: 'male' })}
+              variant={formData.gender === 'male' ? 'primary' : 'secondary'}
+              size="small"
+            />
+          </View>
+          <View style={styles.genderButtonWrapper}>
+            <Button
+              title="Female"
+              onPress={() => setFormData({ ...formData, gender: 'female' })}
+              variant={formData.gender === 'female' ? 'primary' : 'secondary'}
+              size="small"
+            />
+          </View>
         </View>
 
-        <Input
-          placeholder="Birth Date (YYYY-MM-DD)"
-          value={formData.birth_date}
-          onChangeText={(text) => setFormData({ ...formData, birth_date: text })}
-        />
+        <TouchableOpacity onPress={() => setShowBirthDatePicker(true)} style={styles.dateInput}>
+          <Input
+            placeholder="Birth Date (YYYY-MM-DD)"
+            value={formData.birth_date}
+            editable={false}
+            pointerEvents="none"
+          />
+        </TouchableOpacity>
 
-        <Input
-          placeholder="Baptism Date (YYYY-MM-DD)"
-          value={formData.baptism_date}
-          onChangeText={(text) => setFormData({ ...formData, baptism_date: text })}
-        />
+        {showBirthDatePicker && (
+          <DateTimePicker
+            value={formData.birth_date ? new Date(formData.birth_date) : new Date()}
+            mode="date"
+            display="default"
+            onChange={onBirthDateChange}
+          />
+        )}
+
+        <TouchableOpacity onPress={() => setShowBaptismDatePicker(true)} style={styles.dateInput}>
+          <Input
+            placeholder="Baptism Date (YYYY-MM-DD)"
+            value={formData.baptism_date}
+            editable={false}
+            pointerEvents="none"
+          />
+        </TouchableOpacity>
+
+        {showBaptismDatePicker && (
+          <DateTimePicker
+            value={formData.baptism_date ? new Date(formData.baptism_date) : new Date()}
+            mode="date"
+            display="default"
+            onChange={onBaptismDateChange}
+          />
+        )}
 
         <Input
           placeholder="Address"
@@ -137,7 +182,7 @@ export const ProfileScreen: React.FC = () => {
           onChangeText={(text) => setFormData({ ...formData, community: text })}
         />
 
-        <Button title="Save Profile" onPress={handleSave} loading={saving} />
+        <Button title="Save Profile" onPress={handleSave} loading={saving} variant="gradient" />
       </View>
       <CustomAlert ref={alertRef} />
     </ScrollView>
@@ -176,5 +221,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     marginBottom: 20,
+  },
+  genderButtonWrapper: {
+    flex: 1,
+    marginHorizontal: 10,
+    height: 40,
+  },
+  dateInput: {
+    marginVertical: 8,
   },
 });

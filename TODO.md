@@ -1,4 +1,6 @@
-- [x] Edit src/screens/RegisterScreen.tsx: Add <CustomAlert ref={alertRef} /> after the ScrollView to render the alert component.
-- [x] Edit src/screens/ProfileScreen.tsx: Add import for CustomAlert and CustomAlertRef, add <CustomAlert ref={alertRef} /> after the ScrollView, and remove the undefined setProfile(profileData); call in loadProfile.
-- [x] Test the app to verify alerts appear on registration, login errors, profile save, etc.
-- [x] Check for any linting errors or runtime issues.
+# ProfileScreen UI Fixes
+
+- [x] Make gender radio buttons smaller (reduce height and font size in ProfileScreen.tsx)
+- [x] Replace birthdate input with DateTimePicker
+- [x] Replace baptism date input with DateTimePicker
+- [x] Ensure Save Profile button text is white (update Button.tsx for gradient variant)

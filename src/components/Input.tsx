@@ -5,11 +5,13 @@ import { colors } from '../styles/theme';
 interface InputProps {
   placeholder: string;
   value?: string;
-  onChangeText: (text: string) => void;
+  onChangeText?: (text: string) => void;
   secureTextEntry?: boolean;
   error?: string;
   keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
   maxLength?: number;
+  editable?: boolean;
+  pointerEvents?: 'auto' | 'none' | 'box-none' | 'box-only';
 }
 
 export const Input: React.FC<InputProps> = ({
@@ -20,6 +22,8 @@ export const Input: React.FC<InputProps> = ({
   error,
   keyboardType = 'default',
   maxLength,
+  editable,
+  pointerEvents,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
 
@@ -39,6 +43,8 @@ export const Input: React.FC<InputProps> = ({
         keyboardType={keyboardType}
         autoCapitalize="none"
         maxLength={maxLength}
+        editable={editable}
+        pointerEvents={pointerEvents}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
       />
@@ -55,7 +61,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 12,
-    padding: 16,
+    padding: 12,
     fontSize: 16,
     backgroundColor: colors.white,
     color: colors.text,

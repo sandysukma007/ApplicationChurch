@@ -11,6 +11,7 @@ interface ButtonProps {
   loading?: boolean;
   variant?: 'primary' | 'secondary' | 'gradient';
   icon?: string;
+  size?: 'default' | 'small';
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -20,6 +21,7 @@ export const Button: React.FC<ButtonProps> = ({
   loading = false,
   variant = 'primary',
   icon,
+  size = 'default',
 }) => {
   const [scaleValue] = useState(new Animated.Value(1));
 
@@ -43,8 +45,8 @@ export const Button: React.FC<ButtonProps> = ({
         <ActivityIndicator color={variant === 'secondary' ? colors.primary : '#fff'} />
       ) : (
         <>
-          {icon && <Icon name={icon} size={20} color={variant === 'secondary' ? colors.primary : '#fff'} style={styles.icon} />}
-          <Text style={[theme.buttonText, variant === 'secondary' && styles.secondaryText]}>
+          {icon && <Icon name={icon} size={size === 'small' ? 16 : 20} color={variant === 'secondary' ? colors.primary : '#fff'} style={styles.icon} />}
+          <Text style={[theme.buttonText, variant === 'secondary' && styles.secondaryText, variant === 'gradient' && styles.gradientText, size === 'small' && styles.smallText]}>
             {title}
           </Text>
         </>
@@ -56,7 +58,7 @@ export const Button: React.FC<ButtonProps> = ({
     return (
       <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
         <TouchableOpacity
-          style={[theme.button, styles.gradientButton]}
+          style={[theme.button, styles.gradientButton, size === 'small' && styles.smallButton]}
           onPress={onPress}
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
@@ -84,6 +86,7 @@ export const Button: React.FC<ButtonProps> = ({
           variant === 'primary' && styles.primaryButton,
           variant === 'secondary' && styles.secondaryButton,
           (disabled || loading) && styles.disabledButton,
+          size === 'small' && styles.smallButton,
         ]}
         onPress={onPress}
         onPressIn={handlePressIn}
@@ -120,6 +123,15 @@ const styles = StyleSheet.create({
   },
   secondaryText: {
     color: colors.primary,
+  },
+  gradientText: {
+    color: '#fff',
+  },
+  smallButton: {
+    height: 35,
+  },
+  smallText: {
+    fontSize: 14,
   },
   icon: {
     marginRight: 8,
