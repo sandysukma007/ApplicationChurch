@@ -1,13 +1,22 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Image } from 'react-native';
-import { ListItem } from '../components/ListItem';
+import React, { useEffect, useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  Image,
+  RefreshControl,
+  TouchableOpacity
+} from 'react-native';
 import { Loading } from '../components/Loading';
 import { getMasses } from '../utils/api';
 import { Mass } from '../types';
+import { colors } from '../styles/theme';
 
 export const MassesScreen: React.FC = () => {
   const [masses, setMasses] = useState<Mass[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadMasses();
@@ -22,8 +31,14 @@ export const MassesScreen: React.FC = () => {
       console.error('Error loading masses:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadMasses();
+  }, []);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -32,34 +47,109 @@ export const MassesScreen: React.FC = () => {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
+    });
+  };
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('id-ID', {
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const getDayName = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('id-ID', { weekday: 'short' }).toUpperCase();
+  };
+
+  const getDayNumber = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.getDate();
+  };
+
+  const getMonthName = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('id-ID', { month: 'short' }).toUpperCase();
   };
 
   if (loading) {
     return <Loading />;
   }
 
+  const renderMassItem = ({ item }: { item: Mass }) => (
+    <View style={styles.card}>
+      <View style={styles.cardHeader}>
+        <View style={styles.dateContainer}>
+          <Text style={styles.dayName}>{getDayName(item.date_time)}</Text>
+          <Text style={styles.dayNumber}>{getDayNumber(item.date_time)}</Text>
+          <Text style={styles.monthName}>{getMonthName(item.date_time)}</Text>
+        </View>
+        <View style={styles.cardContent}>
+          <Text style={styles.massTitle}>{item.title}</Text>
+          <View style={styles.timeContainer}>
+            <Text style={styles.timeIcon}>🕐</Text>
+            <Text style={styles.timeText}>{formatTime(item.date_time)}</Text>
+          </View>
+          {item.pastor && (
+            <View style={styles.pastorContainer}>
+              <Text style={styles.pastorIcon}>👨‍</Text>
+              <Text style={styles.pastorText}>{item.pastor}</Text>
+            </View>
+          )}
+        </View>
+      </View>
+      {item.description && (
+        <View style={styles.descriptionContainer}>
+          <Text style={styles.descriptionText}>{item.description}</Text>
+        </View>
+      )}
+      <View style={styles.cardFooter}>
+        <TouchableOpacity style={styles.detailButton}>
+          <Text style={styles.detailButtonText}>Lihat Detail</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
-        <Image source={require('../assets/Logo-Santa-Clara-Bekasi-Transparant.png')} style={styles.logo} />
-        <Text style={styles.title}>Jadwal Misa</Text>
+        <View style={styles.headerContent}>
+          <Image
+            source={require('../assets/Logo-Santa-Clara-Bekasi-Transparant.png')}
+            style={styles.logo}
+          />
+          <Text style={styles.headerTitle}>Jadwal Misa</Text>
+          <Text style={styles.headerSubtitle}>Gereja Santa Clara Bekasi</Text>
+        </View>
+        <View style={styles.headerDecoration} />
       </View>
 
+      {/* Content */}
       <FlatList
         data={masses}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <ListItem
-            title={item.title}
-            subtitle={`${formatDate(item.date_time)}${item.pastor ? `\nPastor: ${item.pastor}` : ''}${item.description ? `\n${item.description}` : ''}`}
+        renderItem={renderMassItem}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
           />
-        )}
+        }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>Tidak ada jadwal misa</Text>
+            <Text style={styles.emptyIcon}>📅</Text>
+            <Text style={styles.emptyTitle}>Tidak Ada Jadwal Misa</Text>
+            <Text style={styles.emptyText}>
+              Saat ini tidak ada jadwal misa yang tersedia.{'\n'}
+              Silakan hubungi pihak gereja untuk informasi lebih lanjut.
+            </Text>
           </View>
         }
       />
@@ -70,32 +160,185 @@ export const MassesScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   header: {
+    backgroundColor: colors.primary,
+    paddingTop: 50,
+    paddingBottom: 30,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  headerContent: {
     alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    paddingHorizontal: 20,
   },
   logo: {
-    width: 80,
-    height: 80,
-    marginBottom: 10,
+    width: 70,
+    height: 70,
+    marginBottom: 12,
+    borderRadius: 35,
+    borderWidth: 3,
+    borderColor: colors.white,
   },
-  title: {
-    fontSize: 24,
+  headerTitle: {
+    fontSize: 28,
     fontWeight: 'bold',
+    color: colors.white,
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.9)',
+    textAlign: 'center',
+  },
+  headerDecoration: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 20,
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  listContent: {
+    padding: 16,
+    paddingBottom: 30,
+  },
+  card: {
+    backgroundColor: colors.white,
+    borderRadius: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 6,
+    overflow: 'hidden',
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    padding: 16,
+  },
+  dateContainer: {
+    width: 65,
+    height: 80,
+    backgroundColor: colors.primary,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  dayName: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.9)',
+    marginBottom: 2,
+  },
+  dayNumber: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: colors.white,
+    lineHeight: 36,
+  },
+  monthName: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.9)',
+  },
+  cardContent: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  massTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  timeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  timeIcon: {
+    fontSize: 14,
+    marginRight: 6,
+  },
+  timeText: {
+    fontSize: 14,
+    color: colors.secondary,
+    fontWeight: '600',
+  },
+  pastorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  pastorIcon: {
+    fontSize: 14,
+    marginRight: 6,
+  },
+  pastorText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  descriptionContainer: {
+    backgroundColor: colors.background,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
+  },
+  descriptionText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    lineHeight: 18,
+  },
+  cardFooter: {
+    padding: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
+  },
+  detailButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  detailButtonText: {
+    color: colors.white,
+    fontSize: 14,
+    fontWeight: '600',
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 40,
+    marginTop: 40,
+  },
+  emptyIcon: {
+    fontSize: 60,
+    marginBottom: 20,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 12,
+    textAlign: 'center',
   },
   emptyText: {
-    fontSize: 16,
-    color: '#666',
+    fontSize: 14,
+    color: colors.textSecondary,
     textAlign: 'center',
+    lineHeight: 20,
   },
 });
