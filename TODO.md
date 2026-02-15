@@ -1,7 +1,17 @@
-# TODO: Update Profile Screen for Gender Restriction and Completeness Indicator
+# TODO - Profile Gereja Feature
 
-## Tasks
-- [ ] Modify ProfileScreen.tsx to disable gender selection if gender is not null in database
-- [ ] Add profile completeness progress bar to ProfileScreen.tsx
-- [ ] Translate all text in ProfileScreen.tsx to Indonesian
-- [ ] Test the changes to ensure gender cannot be updated if already set, and completeness bar works
+## Phase 1: Create New Screen Files (7 blank screens + 1 main menu)
+- [ ] Create src/screens/ArahDasarScreen.tsx
+- [ ] Create src/screens/DewanParokiScreen.tsx
+- [ ] Create src/screens/FilosofiLogoScreen.tsx
+- [ ] Create src/screens/ProfilImamScreen.tsx
+- [ ] Create src/screens/SantaClaraAssisiScreen.tsx
+- [ ] Create src/screens/SejarahGerejaScreen.tsx
+- [ ] Create src/screens/SeksiScreen.tsx
+- [ ] Create src/screens/ProfileGerejaScreen.tsx (main menu)
+
+## Phase 2: Update Navigation
+- [ ] Update src/navigation/MainNavigator.tsx to register all new screens
+
+## Phase 3: Update HomeScreen
+- [ ] Update src/screens/HomeScreen.tsx to add "Profile Gereja" menu item

@@ -7,6 +7,14 @@ import { ProfileScreen } from '../screens/ProfileScreen';
 import { AnnouncementsScreen } from '../screens/AnnouncementsScreen';
 import { MediaScreen } from '../screens/MediaScreen';
 import { ResetPasswordScreen } from '../screens/ResetPasswordScreen';
+import { ProfileGerejaScreen } from '../screens/ProfileGerejaScreen';
+import { ArahDasarScreen } from '../screens/ArahDasarScreen';
+import { DewanParokiScreen } from '../screens/DewanParokiScreen';
+import { FilosofiLogoScreen } from '../screens/FilosofiLogoScreen';
+import { ProfilImamScreen } from '../screens/ProfilImamScreen';
+import { SantaClaraAssisiScreen } from '../screens/SantaClaraAssisiScreen';
+import { SejarahGerejaScreen } from '../screens/SejarahGerejaScreen';
+import { SeksiScreen } from '../screens/SeksiScreen';
 
 export type MainStackParamList = {
   Home: undefined;
@@ -16,6 +24,14 @@ export type MainStackParamList = {
   Announcements: undefined;
   Media: undefined;
   ResetPassword: undefined;
+  ProfileGereja: undefined;
+  ArahDasar: undefined;
+  DewanParoki: undefined;
+  FilosofiLogo: undefined;
+  ProfilImam: undefined;
+  SantaClaraAssisi: undefined;
+  SejarahGereja: undefined;
+  Seksi: undefined;
 };
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
@@ -30,6 +46,14 @@ export const MainNavigator: React.FC = () => {
       <Stack.Screen name="Announcements" component={AnnouncementsScreen} options={{ title: 'Pengumuman' }} />
       <Stack.Screen name="Media" component={MediaScreen} options={{ title: 'Media' }} />
       <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} options={{ title: 'Reset Password' }} />
+      <Stack.Screen name="ProfileGereja" component={ProfileGerejaScreen} options={{ title: 'Profile Gereja' }} />
+      <Stack.Screen name="ArahDasar" component={ArahDasarScreen} options={{ title: 'Arah Dasar' }} />
+      <Stack.Screen name="DewanParoki" component={DewanParokiScreen} options={{ title: 'Dewan Paroki' }} />
+      <Stack.Screen name="FilosofiLogo" component={FilosofiLogoScreen} options={{ title: 'Filosofi Logo' }} />
+      <Stack.Screen name="ProfilImam" component={ProfilImamScreen} options={{ title: 'Profil Imam' }} />
+      <Stack.Screen name="SantaClaraAssisi" component={SantaClaraAssisiScreen} options={{ title: 'Santa Clara' }} />
+      <Stack.Screen name="SejarahGereja" component={SejarahGerejaScreen} options={{ title: 'Sejarah Gereja' }} />
+      <Stack.Screen name="Seksi" component={SeksiScreen} options={{ title: 'Seksi' }} />
     </Stack.Navigator>
   );
 };

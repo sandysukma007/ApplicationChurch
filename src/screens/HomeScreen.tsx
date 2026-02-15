@@ -324,6 +324,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 { title: 'Profil', icon: 'person', screen: 'Profile', gradient: ['#ed8936', '#dd6b20'] },
                 { title: 'Pengumuman', icon: 'campaign', screen: 'Announcements', gradient: ['#9f7aea', '#805ad5'] },
                 { title: 'Media', icon: 'play_circle_filled', screen: 'Media', gradient: ['#f56565', '#e53e3e'] },
+                { title: 'Profile Gereja', icon: 'church', screen: 'ProfileGereja', gradient: ['#805ad5', '#6b46c1'] },
                 { title: 'Ubah Password', icon: 'lock', screen: 'ChangePassword', gradient: ['#718096', '#4a5568'] },
               ].map((item, index) => {
                 let iconName = item.icon;
