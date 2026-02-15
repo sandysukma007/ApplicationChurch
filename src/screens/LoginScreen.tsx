@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { View, Text, Image, TouchableOpacity } from 'react-native';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
+import { Loading } from '../components/Loading';
 import { CustomAlert, CustomAlertRef } from '../components/CustomAlert';
 import { login } from '../utils/auth';
 import { LoginCredentials } from '../types';
@@ -17,6 +18,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const alertRef = useRef<CustomAlertRef>(null);
+
+  if (loading) {
+    return <Loading />;
+  }
 
   const validate = () => {
     const newErrors: { email?: string; password?: string } = {};
