@@ -29,6 +29,22 @@ export const getMasses = async (): Promise<Mass[]> => {
   return data || [];
 };
 
+// Get masses within the next 2 days (for reminder feature)
+export const getUpcomingMasses = async (): Promise<Mass[]> => {
+  const now = new Date();
+  const twoDaysLater = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000); // 2 days in milliseconds
+
+  const { data, error } = await supabase
+    .from('masses')
+    .select('*')
+    .gte('date_time', now.toISOString())
+    .lte('date_time', twoDaysLater.toISOString())
+    .order('date_time', { ascending: true });
+
+  if (error) throw error;
+  return data || [];
+};
+
 export const getAnnouncements = async (): Promise<Announcement[]> => {
   const { data, error } = await supabase
     .from('announcements')

@@ -1,12 +1,13 @@
-# TODO - MassesScreen Improvement
+# Mass Reminder Feature - TODO
 
-## Plan Confirmation
-- [x] Confirm plan with user - APPROVED
+## Tasks:
+- [ ] 1. Add `getUpcomingMasses` function in `src/utils/api.ts`
+- [ ] 2. Update `src/screens/HomeScreen.tsx` with:
+  - [ ] Load upcoming masses on mount
+  - [ ] Countdown timer logic
+  - [ ] Display reminder card UI
+  - [ ] Add styling for the reminder
 
-## Implementation
-- [ ] Update ListItem.tsx with enhanced styling and theme colors
-- [ ] Update MassesScreen.tsx with better display and theme colors
-
-## Verification
-- [ ] Verify all theme colors are applied correctly
-- [ ] Test the display
+## Progress:
+- [ ] Task 1: Add getUpcomingMasses function
+- [ ] Task 2: Update HomeScreen.tsx

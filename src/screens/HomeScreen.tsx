@@ -15,9 +15,9 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Button } from '../components/Button';
 import { Loading } from '../components/Loading';
-import { getAnnouncements } from '../utils/api';
+import { getAnnouncements, getMasses, getUpcomingMasses } from '../utils/api';
 import { logout } from '../utils/auth';
-import { Announcement } from '../types';
+import { Announcement, Mass } from '../types';
 import { colors } from '../styles/theme';
 import { supabase } from '../supabaseClient';
 
@@ -32,6 +32,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState('');
   const [angelusMinutes, setAngelusMinutes] = useState<number | null>(null);
+  const [upcomingMass, setUpcomingMass] = useState<Mass | null>(null);
+  const [countdown, setCountdown] = useState<{ days: number; hours: number; minutes: number } | null>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
 
@@ -586,20 +588,20 @@ const styles = StyleSheet.create({
   menuGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-around',
-    paddingHorizontal: 10,
+    justifyContent: 'space-between',
+    paddingHorizontal: 15,
   },
   menuItem: {
-    width: (width - 100) / 3,
+    width: (width - 80) / 3,
     alignItems: 'center',
-    marginBottom: 25,
+    marginBottom: 20,
   },
   menuIconWrapper: {
   },
   menuIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 25,
+    width: 70,
+    height: 70,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
