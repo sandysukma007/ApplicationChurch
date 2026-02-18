@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import {
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Loading } from '../components/Loading';
-import { getSeatAvailability, createReservation, getUserReservationForMass } from '../utils/api';
+import { getSeatAvailability, createReservation, getUserReservationForMass, getReservationsByMass } from '../utils/api';
 import { SeatAvailability, Reservation } from '../types';
 import { colors } from '../styles/theme';
 import { MainStackParamList } from '../navigation/MainNavigator';
@@ -22,10 +22,13 @@ type BookingScreenNavigationProp = NativeStackNavigationProp<MainStackParamList,
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
-// Seat layout: 3 columns (A, B, C) × 2 rows (1, 2) × 10 seats = 60 seats
+// Horizontal layout:
+// - Columns A, B, C as vertical sections (left to right, altar on far right)
+// - For each column: rows 1-10, each with 10 seats
+// - So layout is: [A1-10][A2-10]...[A10-10][B1-10][B2-10]...[B10-10][C1-10][C2-10]...[C10-10] -> ALTAR
+const ROWS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+const SEAT_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const COLUMNS = ['A', 'B', 'C'];
-const ROWS = [1, 2];
-const SEATS_PER_ROW = 10;
 
 export const BookingScreen: React.FC = () => {
   const route = useRoute<BookingScreenRouteProp>();
@@ -34,10 +37,11 @@ export const BookingScreen: React.FC = () => {
 
   const [seats, setSeats] = useState<SeatAvailability[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedSeat, setSelectedSeat] = useState<SeatAvailability | null>(null);
+  const [selectedSeats, setSelectedSeats] = useState<SeatAvailability[]>([]);
   const [numberOfPeople, setNumberOfPeople] = useState(1);
   const [userReservation, setUserReservation] = useState<Reservation | null>(null);
   const [isBooking, setIsBooking] = useState(false);
+  const [bookedSeatIds, setBookedSeatIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadSeatAvailability();
@@ -46,12 +50,22 @@ export const BookingScreen: React.FC = () => {
   const loadSeatAvailability = async () => {
     try {
       setLoading(true);
-      const [seatData, reservationData] = await Promise.all([
+      const [seatData, reservationData, allReservations] = await Promise.all([
         getSeatAvailability(massId),
         getUserReservationForMass(massId),
+        getReservationsByMass(massId),
       ]);
       setSeats(seatData);
       setUserReservation(reservationData);
+
+      // Set booked seat IDs (seats already reserved by other users)
+      const bookedIds = new Set<string>();
+      allReservations.forEach(res => {
+        if (res.seat_id) {
+          bookedIds.add(res.seat_id);
+        }
+      });
+      setBookedSeatIds(bookedIds);
     } catch (error: any) {
       console.error('Error loading seat availability:', error);
       Alert.alert('Error', 'Gagal memuat ketersediaan bangku');
@@ -60,8 +74,13 @@ export const BookingScreen: React.FC = () => {
     }
   };
 
+  const isSeatSelected = (seat: SeatAvailability): boolean => {
+    return selectedSeats.some(s => s.seat_id === seat.seat_id);
+  };
+
   const getSeatStatus = (seat: SeatAvailability): 'available' | 'limited' | 'full' | 'selected' | 'booked' => {
-    if (selectedSeat?.seat_id === seat.seat_id) return 'selected';
+    if (isSeatSelected(seat)) return 'selected';
+    if (bookedSeatIds.has(seat.seat_id)) return 'booked';
     if (seat.available_count === 0) return 'full';
     if (seat.available_count <= 3) return 'limited';
     return 'available';
@@ -82,37 +101,146 @@ export const BookingScreen: React.FC = () => {
     }
   };
 
+  // Find adjacent seats in the SAME row - like cinema seats: A1, A2, A3, etc.
+  const findAdjacentSeats = (seat: SeatAvailability, count: number): SeatAvailability[] => {
+    const adjacent: SeatAvailability[] = [seat];
+
+    // Get current position
+    const currentColumn = seat.column_name;
+    const currentRow = seat.row_number;
+    const currentSeatNum = seat.seat_number;
+
+    // Find next available seats in the SAME column and SAME row
+    // Seat numbers go: 1, 2, 3, ... 10
+    let seatNum = currentSeatNum;
+
+    for (let i = 1; i < count; i++) {
+      seatNum++; // Move to next seat number
+
+      // If we've gone past seat 10, stop
+      if (seatNum > 10) {
+        break;
+      }
+
+      // Find the seat at this position in the SAME column and row
+      const nextSeat = seats.find(s =>
+        s.column_name === currentColumn &&
+        s.row_number === currentRow &&
+        s.seat_number === seatNum &&
+        s.available_count > 0 &&
+        !bookedSeatIds.has(s.seat_id) &&
+        !adjacent.some(adj => adj.seat_id === s.seat_id)
+      );
+
+      if (nextSeat) {
+        adjacent.push(nextSeat);
+      } else {
+        // No more available seats in this row/column, stop
+        break;
+      }
+    }
+
+    return adjacent;
+  };
+
   const handleSeatSelect = (seat: SeatAvailability) => {
+    // Check if already booked by someone else
+    if (bookedSeatIds.has(seat.seat_id)) {
+      Alert.alert('Info', 'Bangku ini sudah dipesan oleh jemaat lain');
+      return;
+    }
+
     if (seat.available_count === 0) {
       Alert.alert('Info', 'Bangku ini sudah penuh');
       return;
     }
+
     if (userReservation && userReservation.seat_id !== seat.seat_id) {
       Alert.alert('Info', 'Anda sudah memiliki reservasi untuk Misa ini');
       return;
     }
-    setSelectedSeat(seat);
-    setNumberOfPeople(1);
+
+    // Toggle seat selection
+    if (isSeatSelected(seat)) {
+      // Deselect the seat
+      setSelectedSeats(prev => prev.filter(s => s.seat_id !== seat.seat_id));
+      return;
+    }
+
+    // If selecting a new seat, handle multiple selection based on numberOfPeople
+    if (numberOfPeople > 1) {
+      const adjacentSeats = findAdjacentSeats(seat, numberOfPeople);
+      if (adjacentSeats.length < numberOfPeople) {
+        Alert.alert('Info', `Hanya ada ${adjacentSeats.length} bangku kosong di samping. Silakan pilih bangku lain.`);
+        return;
+      }
+      setSelectedSeats(adjacentSeats);
+    } else {
+      setSelectedSeats([seat]);
+    }
+  };
+
+  // Update selected seats when numberOfPeople changes
+  const handleNumberOfPeopleChange = (newCount: number) => {
+    setNumberOfPeople(newCount);
+
+    if (selectedSeats.length > 0 && newCount > 1) {
+      // Try to expand selection to adjacent seats
+      const firstSelected = selectedSeats[0];
+      const adjacentSeats = findAdjacentSeats(firstSelected, newCount);
+
+      if (adjacentSeats.length >= newCount) {
+        setSelectedSeats(adjacentSeats);
+      } else if (adjacentSeats.length < newCount) {
+        // Not enough adjacent seats, keep current selection but warn user
+        Alert.alert('Info', `Hanya ada ${adjacentSeats.length} bangku kosong di samping bangku yang dipilih.`);
+      }
+    }
   };
 
   const handleBooking = async () => {
-    if (!selectedSeat) {
+    if (selectedSeats.length === 0) {
       Alert.alert('Pilih Bangku', 'Silakan pilih bangku terlebih dahulu');
+      return;
+    }
+
+    if (selectedSeats.length !== numberOfPeople) {
+      Alert.alert('Pilih Bangku', `Silakan pilih ${numberOfPeople} bangku`);
       return;
     }
 
     try {
       setIsBooking(true);
-      await createReservation({
-        mass_id: massId,
-        seat_id: selectedSeat.seat_id,
-        number_of_people: numberOfPeople,
-      });
 
+      // Create a reservation for each selected seat
+      // Each seat gets number_of_people = 1 (each seat is for 1 person)
+      for (let i = 0; i < selectedSeats.length; i++) {
+        const seat = selectedSeats[i];
+
+        await createReservation({
+          mass_id: massId,
+          seat_id: seat.seat_id,
+          number_of_people: 1, // Each seat is for 1 person
+        });
+      }
+
+      const seatNumbers = selectedSeats
+        .map(s => `${s.column_name}${s.row_number}${s.seat_number}`)
+        .join(', ');
+
+      // Show success alert with close button
       Alert.alert(
         'Berhasil!',
-        `Reservasi berhasil!\n\nBangku: ${selectedSeat.column_name}-${selectedSeat.row_number}-${selectedSeat.seat_number}\nJumlah: ${numberOfPeople} orang`,
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
+        `Reservasi berhasil!\n\nBangku: ${seatNumbers}\nJumlah: ${selectedSeats.length} orang\n\nSilakan datang tepat waktu untuk memudahkan verifikasi.`,
+        [{
+          text: 'Tutup',
+          onPress: () => {
+            // Refresh the page to show updated seat status
+            loadSeatAvailability();
+            setSelectedSeats([]);
+            setNumberOfPeople(1);
+          }
+        }]
       );
     } catch (error: any) {
       console.error('Error creating reservation:', error);
@@ -144,14 +272,14 @@ export const BookingScreen: React.FC = () => {
     return <Loading />;
   }
 
-  const renderSeat = (column: string, row: number, seatNum: number) => {
+  const renderSeat = (column: string, rowNum: number, seatNum: number) => {
     const seat = seats.find(
-      s => s.column_name === column && s.row_number === row && s.seat_number === seatNum
+      s => s.column_name === column && s.row_number === rowNum && s.seat_number === seatNum
     );
 
     if (!seat) {
       return (
-        <View key={`${column}-${row}-${seatNum}`} style={styles.seatPlaceholder} />
+        <View key={`${column}-${rowNum}-${seatNum}`} style={styles.seatPlaceholder} />
       );
     }
 
@@ -160,36 +288,28 @@ export const BookingScreen: React.FC = () => {
 
     return (
       <TouchableOpacity
-        key={`${column}-${row}-${seatNum}`}
+        key={`${column}-${rowNum}-${seatNum}`}
         style={[styles.seat, { backgroundColor: seatColor }]}
         onPress={() => handleSeatSelect(seat)}
-        disabled={seat.available_count === 0 || !!userReservation}
+        disabled={(seat.available_count === 0 && !isSeatSelected(seat)) || !!userReservation}
       >
         <Text style={styles.seatText}>{seatNum}</Text>
       </TouchableOpacity>
     );
   };
 
-  const renderRow = (column: string, row: number) => {
-    return (
-      <View key={`${column}-${row}`} style={styles.row}>
-        <Text style={styles.rowLabel}>Baris {row}</Text>
-        <View style={styles.seatsContainer}>
-          {Array.from({ length: SEATS_PER_ROW }, (_, i) => i + 1).map(seatNum =>
-            renderSeat(column, row, seatNum)
-          )}
-        </View>
-      </View>
-    );
-  };
-
+  // Render column - like movie theater: each column shows 10 rows, each row with 10 seats
   const renderColumn = (column: string) => {
     return (
-      <View key={column} style={styles.column}>
-        <Text style={styles.columnHeader}>
-          {column === 'A' ? 'KIRI' : column === 'B' ? 'TENGAH' : 'KANAN'}
-        </Text>
-        {ROWS.map(row => renderRow(column, row))}
+      <View key={`column-${column}`} style={styles.columnContainer}>
+        <Text style={styles.columnHeader}>{column}</Text>
+        <View style={styles.columnSeats}>
+          {ROWS.map(rowNum => (
+            <View key={`${column}-row-${rowNum}`} style={styles.seatRow}>
+              {SEAT_NUMBERS.map(seatNum => renderSeat(column, rowNum, seatNum))}
+            </View>
+          ))}
+        </View>
       </View>
     );
   };
@@ -210,6 +330,14 @@ export const BookingScreen: React.FC = () => {
           </Text>
         </View>
         <View style={styles.headerDecoration} />
+      </View>
+
+      {/* Altar - at the TOP */}
+      <View style={styles.altarTopContainer}>
+        <View style={styles.altar}>
+          <Text style={styles.altarText}>ALTAR</Text>
+        </View>
+        <Text style={styles.altarDirection}>↓ Menghadap</Text>
       </View>
 
       {/* User Reservation Info */}
@@ -240,33 +368,38 @@ export const BookingScreen: React.FC = () => {
           <Text style={styles.legendText}>Penuh</Text>
         </View>
         <View style={styles.legendItem}>
+          <View style={[styles.legendColor, { backgroundColor: '#95A5A6' }]} />
+          <Text style={styles.legendText}>Terpakai</Text>
+        </View>
+        <View style={styles.legendItem}>
           <View style={[styles.legendColor, { backgroundColor: colors.primary }]} />
           <Text style={styles.legendText}>Dipilih</Text>
         </View>
       </View>
 
-      {/* Stage/Altar */}
-      <View style={styles.stage}>
-        <Text style={styles.stageText}>ALTAR</Text>
+      {/* Horizontal Seat Layout - Movie Theater Style */}
+      <View style={styles.mainContent}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={true}
+          style={styles.seatLayoutHorizontal}
+          contentContainerStyle={styles.seatLayoutContent}
+        >
+          {/* Render 3 columns: A, B, C - like movie theater */}
+          {COLUMNS.map(column => renderColumn(column))}
+        </ScrollView>
       </View>
 
-      {/* Seat Layout */}
-      <ScrollView style={styles.seatLayout} showsVerticalScrollIndicator={false}>
-        {COLUMNS.map(column => renderColumn(column))}
-
-        <View style={styles.bottomSpacing} />
-      </ScrollView>
-
       {/* Booking Form */}
-      {selectedSeat && !userReservation && (
+      {selectedSeats.length > 0 && !userReservation && (
         <View style={styles.bookingForm}>
           <View style={styles.selectedSeatInfo}>
             <Text style={styles.selectedSeatLabel}>Bangku Dipilih:</Text>
             <Text style={styles.selectedSeatValue}>
-              {selectedSeat.column_name}-{selectedSeat.row_number}-{selectedSeat.seat_number}
+              {selectedSeats.map(s => `${s.column_name}${s.row_number}-${s.seat_number}`).join(', ')}
             </Text>
             <Text style={styles.availableText}>
-              Tersedia: {selectedSeat.available_count} orang
+              {selectedSeats.length} bangku dipilih
             </Text>
           </View>
 
@@ -275,14 +408,14 @@ export const BookingScreen: React.FC = () => {
             <View style={styles.numberControls}>
               <TouchableOpacity
                 style={styles.numberButton}
-                onPress={() => setNumberOfPeople(Math.max(1, numberOfPeople - 1))}
+                onPress={() => handleNumberOfPeopleChange(Math.max(1, numberOfPeople - 1))}
               >
                 <Text style={styles.numberButtonText}>-</Text>
               </TouchableOpacity>
               <Text style={styles.numberValue}>{numberOfPeople}</Text>
               <TouchableOpacity
                 style={styles.numberButton}
-                onPress={() => setNumberOfPeople(Math.min(selectedSeat.available_count, numberOfPeople + 1))}
+                onPress={() => handleNumberOfPeopleChange(Math.min(10, numberOfPeople + 1))}
               >
                 <Text style={styles.numberButtonText}>+</Text>
               </TouchableOpacity>
@@ -290,9 +423,13 @@ export const BookingScreen: React.FC = () => {
           </View>
 
           <TouchableOpacity
-            style={[styles.bookButton, isBooking && styles.bookButtonDisabled]}
+            style={[
+              styles.bookButton,
+              isBooking && styles.bookButtonDisabled,
+              selectedSeats.length !== numberOfPeople && styles.bookButtonDisabled
+            ]}
             onPress={handleBooking}
-            disabled={isBooking}
+            disabled={isBooking || selectedSeats.length !== numberOfPeople}
           >
             <Text style={styles.bookButtonText}>
               {isBooking ? 'Memproses...' : 'Reservasi Sekarang'}
@@ -389,15 +526,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 8,
     backgroundColor: colors.white,
     marginHorizontal: 16,
     marginTop: 16,
     borderRadius: 12,
+    flexWrap: 'wrap',
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginHorizontal: 4,
   },
   legendColor: {
     width: 16,
@@ -406,67 +545,137 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   legendText: {
-    fontSize: 12,
+    fontSize: 11,
     color: colors.text,
   },
-  stage: {
-    backgroundColor: colors.secondary,
+  mainContent: {
+    flex: 1,
+    flexDirection: 'row',
+    marginTop: 16,
+  },
+  altarTopContainer: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    backgroundColor: colors.white,
     marginHorizontal: 16,
     marginTop: 16,
-    paddingVertical: 15,
     borderRadius: 12,
-    alignItems: 'center',
   },
-  stageText: {
+  columnContainer: {
+    alignItems: 'center',
+    marginHorizontal: 8,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+    borderRadius: 8,
+  },
+  columnHeader: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: colors.white,
-    letterSpacing: 4,
+    color: colors.primary,
+    marginBottom: 8,
+  },
+  columnSeats: {
+    alignItems: 'center',
+  },
+  seatRow: {
+    flexDirection: 'row',
+    marginBottom: 4,
+  },
+  seatLayoutHorizontal: {
+    flex: 1,
+  },
+  seatLayoutContent: {
+    paddingHorizontal: 8,
+    paddingVertical: 8,
   },
   seatLayout: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingLeft: 16,
   },
-  column: {
-    marginBottom: 16,
+  horizontalLayout: {
+    flexDirection: 'column',
   },
-  columnHeader: {
+  rowNumbersHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    paddingRight: 16,
+  },
+  rowLabelSpace: {
+    width: 30,
+    marginRight: 8,
+  },
+  columnHeaderText: {
+    flex: 1,
+    textAlign: 'center',
     fontSize: 14,
     fontWeight: 'bold',
     color: colors.text,
-    textAlign: 'center',
-    marginBottom: 8,
   },
-  row: {
-    marginBottom: 8,
+  horizontalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
   },
   rowLabel: {
+    width: 30,
     fontSize: 12,
     color: colors.textSecondary,
-    marginBottom: 4,
+    marginRight: 8,
+    textAlign: 'center',
   },
-  seatsContainer: {
+  horizontalSeatsContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
+    flex: 1,
+  },
+  columnGroup: {
+    flexDirection: 'row',
+    flex: 1,
   },
   seat: {
-    width: (SCREEN_WIDTH - 80) / 10,
-    height: 32,
-    borderRadius: 6,
+    width: 44,
+    height: 44,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    margin: 2,
+    marginHorizontal: 3,
+    marginVertical: 2,
   },
   seatPlaceholder: {
-    width: (SCREEN_WIDTH - 80) / 10,
-    height: 32,
-    margin: 2,
+    width: 44,
+    height: 44,
+    marginHorizontal: 3,
+    marginVertical: 2,
   },
   seatText: {
     fontSize: 12,
     fontWeight: 'bold',
     color: colors.white,
+  },
+  altarContainer: {
+    width: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingRight: 16,
+  },
+  altar: {
+    backgroundColor: colors.secondary,
+    paddingVertical: 20,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  altarText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: colors.white,
+    letterSpacing: 2,
+  },
+  altarDirection: {
+    fontSize: 10,
+    color: colors.textSecondary,
+    marginTop: 8,
   },
   bottomSpacing: {
     height: 20,
@@ -492,9 +701,10 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   selectedSeatValue: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: colors.primary,
+    marginTop: 4,
   },
   availableText: {
     fontSize: 12,

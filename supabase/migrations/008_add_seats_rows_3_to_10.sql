@@ -1,26 +1,11 @@
--- Create seats table for seat booking system
--- Layout: 3 columns (A, B, C) × 10 rows (1-10) × 10 seats = 300 seats total
+-- Add additional seat rows (3-10) to existing seats table
+-- This adds 240 new seats (8 rows × 3 columns × 10 seats per row)
 
-CREATE TABLE IF NOT EXISTS seats (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  column_name VARCHAR(1) NOT NULL CHECK (column_name IN ('A', 'B', 'C')),
-  row_number INTEGER NOT NULL CHECK (row_number BETWEEN 1 AND 10),
-  seat_number INTEGER NOT NULL CHECK (seat_number BETWEEN 1 AND 10),
-  capacity INTEGER NOT NULL DEFAULT 10,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE(column_name, row_number, seat_number)
-);
+-- First, let's check if we need to add the new rows
+-- Insert seats for rows 3-10 if they don't exist
 
--- Create index for faster queries
-CREATE INDEX idx_seats_location ON seats(column_name, row_number, seat_number);
-
--- Insert all 300 seats (3 columns × 10 rows × 10 seats)
+-- Column A - Rows 3-10
 INSERT INTO seats (column_name, row_number, seat_number, capacity) VALUES
--- Column A (Kiri)
-('A', 1, 1, 10), ('A', 1, 2, 10), ('A', 1, 3, 10), ('A', 1, 4, 10), ('A', 1, 5, 10),
-('A', 1, 6, 10), ('A', 1, 7, 10), ('A', 1, 8, 10), ('A', 1, 9, 10), ('A', 1, 10, 10),
-('A', 2, 1, 10), ('A', 2, 2, 10), ('A', 2, 3, 10), ('A', 2, 4, 10), ('A', 2, 5, 10),
-('A', 2, 6, 10), ('A', 2, 7, 10), ('A', 2, 8, 10), ('A', 2, 9, 10), ('A', 2, 10, 10),
 ('A', 3, 1, 10), ('A', 3, 2, 10), ('A', 3, 3, 10), ('A', 3, 4, 10), ('A', 3, 5, 10),
 ('A', 3, 6, 10), ('A', 3, 7, 10), ('A', 3, 8, 10), ('A', 3, 9, 10), ('A', 3, 10, 10),
 ('A', 4, 1, 10), ('A', 4, 2, 10), ('A', 4, 3, 10), ('A', 4, 4, 10), ('A', 4, 5, 10),
@@ -36,12 +21,11 @@ INSERT INTO seats (column_name, row_number, seat_number, capacity) VALUES
 ('A', 9, 1, 10), ('A', 9, 2, 10), ('A', 9, 3, 10), ('A', 9, 4, 10), ('A', 9, 5, 10),
 ('A', 9, 6, 10), ('A', 9, 7, 10), ('A', 9, 8, 10), ('A', 9, 9, 10), ('A', 9, 10, 10),
 ('A', 10, 1, 10), ('A', 10, 2, 10), ('A', 10, 3, 10), ('A', 10, 4, 10), ('A', 10, 5, 10),
-('A', 10, 6, 10), ('A', 10, 7, 10), ('A', 10, 8, 10), ('A', 10, 9, 10), ('A', 10, 10, 10),
--- Column B (Tengah)
-('B', 1, 1, 10), ('B', 1, 2, 10), ('B', 1, 3, 10), ('B', 1, 4, 10), ('B', 1, 5, 10),
-('B', 1, 6, 10), ('B', 1, 7, 10), ('B', 1, 8, 10), ('B', 1, 9, 10), ('B', 1, 10, 10),
-('B', 2, 1, 10), ('B', 2, 2, 10), ('B', 2, 3, 10), ('B', 2, 4, 10), ('B', 2, 5, 10),
-('B', 2, 6, 10), ('B', 2, 7, 10), ('B', 2, 8, 10), ('B', 2, 9, 10), ('B', 2, 10, 10),
+('A', 10, 6, 10), ('A', 10, 7, 10), ('A', 10, 8, 10), ('A', 10, 9, 10), ('A', 10, 10, 10)
+ON CONFLICT (column_name, row_number, seat_number) DO NOTHING;
+
+-- Column B - Rows 3-10
+INSERT INTO seats (column_name, row_number, seat_number, capacity) VALUES
 ('B', 3, 1, 10), ('B', 3, 2, 10), ('B', 3, 3, 10), ('B', 3, 4, 10), ('B', 3, 5, 10),
 ('B', 3, 6, 10), ('B', 3, 7, 10), ('B', 3, 8, 10), ('B', 3, 9, 10), ('B', 3, 10, 10),
 ('B', 4, 1, 10), ('B', 4, 2, 10), ('B', 4, 3, 10), ('B', 4, 4, 10), ('B', 4, 5, 10),
@@ -57,12 +41,11 @@ INSERT INTO seats (column_name, row_number, seat_number, capacity) VALUES
 ('B', 9, 1, 10), ('B', 9, 2, 10), ('B', 9, 3, 10), ('B', 9, 4, 10), ('B', 9, 5, 10),
 ('B', 9, 6, 10), ('B', 9, 7, 10), ('B', 9, 8, 10), ('B', 9, 9, 10), ('B', 9, 10, 10),
 ('B', 10, 1, 10), ('B', 10, 2, 10), ('B', 10, 3, 10), ('B', 10, 4, 10), ('B', 10, 5, 10),
-('B', 10, 6, 10), ('B', 10, 7, 10), ('B', 10, 8, 10), ('B', 10, 9, 10), ('B', 10, 10, 10),
--- Column C (Kanan)
-('C', 1, 1, 10), ('C', 1, 2, 10), ('C', 1, 3, 10), ('C', 1, 4, 10), ('C', 1, 5, 10),
-('C', 1, 6, 10), ('C', 1, 7, 10), ('C', 1, 8, 10), ('C', 1, 9, 10), ('C', 1, 10, 10),
-('C', 2, 1, 10), ('C', 2, 2, 10), ('C', 2, 3, 10), ('C', 2, 4, 10), ('C', 2, 5, 10),
-('C', 2, 6, 10), ('C', 2, 7, 10), ('C', 2, 8, 10), ('C', 2, 9, 10), ('C', 2, 10, 10),
+('B', 10, 6, 10), ('B', 10, 7, 10), ('B', 10, 8, 10), ('B', 10, 9, 10), ('B', 10, 10, 10)
+ON CONFLICT (column_name, row_number, seat_number) DO NOTHING;
+
+-- Column C - Rows 3-10
+INSERT INTO seats (column_name, row_number, seat_number, capacity) VALUES
 ('C', 3, 1, 10), ('C', 3, 2, 10), ('C', 3, 3, 10), ('C', 3, 4, 10), ('C', 3, 5, 10),
 ('C', 3, 6, 10), ('C', 3, 7, 10), ('C', 3, 8, 10), ('C', 3, 9, 10), ('C', 3, 10, 10),
 ('C', 4, 1, 10), ('C', 4, 2, 10), ('C', 4, 3, 10), ('C', 4, 4, 10), ('C', 4, 5, 10),
@@ -81,12 +64,5 @@ INSERT INTO seats (column_name, row_number, seat_number, capacity) VALUES
 ('C', 10, 6, 10), ('C', 10, 7, 10), ('C', 10, 8, 10), ('C', 10, 9, 10), ('C', 10, 10, 10)
 ON CONFLICT (column_name, row_number, seat_number) DO NOTHING;
 
--- Enable RLS
-ALTER TABLE seats ENABLE ROW LEVEL SECURITY;
-
--- Allow public read access to seats
-CREATE POLICY "Allow public read access to seats" ON seats
-  FOR SELECT USING (true);
-
--- Allow authenticated users to insert/update/delete their own reservations
--- (handled by reservations table policy)
+-- Verify the total count
+-- SELECT COUNT(*) FROM seats; -- Should be 300
