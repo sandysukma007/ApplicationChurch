@@ -111,3 +111,69 @@ export const uploadMedia = async (file: any, name: string, type: 'foto' | 'video
   if (error) throw error;
   return data;
 };
+
+// Seat Booking API Functions
+
+// Get seat availability for a specific mass using the database function
+export const getSeatAvailability = async (massId: string): Promise<SeatAvailability[]> => {
+  const { data, error } = await supabase
+    .rpc('get_seat_availability', { mass_id: massId });
+  if (error) throw error;
+  return data || [];
+};
+
+// Get all reservations for a specific mass
+export const getReservationsByMass = async (massId: string): Promise<Reservation[]> => {
+  const { data, error } = await supabase
+    .from('reservations')
+    .select('*, seat:seats(*)')
+    .eq('mass_id', massId)
+    .eq('status', 'confirmed');
+  if (error) throw error;
+  return data || [];
+};
+
+// Get user's reservations for a specific mass
+export const getUserReservationForMass = async (massId: string): Promise<Reservation | null> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data, error } = await supabase
+    .from('reservations')
+    .select('*, seat:seats(*)')
+    .eq('mass_id', massId)
+    .eq('user_id', user.id)
+    .eq('status', 'confirmed')
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+};
+
+// Create a new reservation
+export const createReservation = async (reservationData: ReservationFormData): Promise<Reservation> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('User not authenticated');
+
+  const { data, error } = await supabase
+    .from('reservations')
+    .insert({
+      mass_id: reservationData.mass_id,
+      seat_id: reservationData.seat_id,
+      user_id: user.id,
+      number_of_people: reservationData.number_of_people,
+      status: 'confirmed',
+    })
+    .select('*, seat:seats(*)')
+    .single();
+  if (error) throw error;
+  return data;
+};
+
+// Cancel a reservation
+export const cancelReservation = async (reservationId: string): Promise<void> => {
+  const { error } = await supabase
+    .from('reservations')
+    .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+    .eq('id', reservationId);
+  if (error) throw error;
+};

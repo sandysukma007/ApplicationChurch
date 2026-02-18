@@ -15,6 +15,7 @@ import { ProfilImamScreen } from '../screens/ProfilImamScreen';
 import { SantaClaraAssisiScreen } from '../screens/SantaClaraAssisiScreen';
 import { SejarahGerejaScreen } from '../screens/SejarahGerejaScreen';
 import { SeksiScreen } from '../screens/SeksiScreen';
+import { BookingScreen } from '../screens/BookingScreen';
 
 export type MainStackParamList = {
   Home: undefined;
@@ -32,6 +33,11 @@ export type MainStackParamList = {
   SantaClaraAssisi: undefined;
   SejarahGereja: undefined;
   Seksi: undefined;
+  Booking: {
+    massId: string;
+    massTitle: string;
+    massDateTime: string;
+  };
 };
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
@@ -54,6 +60,7 @@ export const MainNavigator: React.FC = () => {
       <Stack.Screen name="SantaClaraAssisi" component={SantaClaraAssisiScreen} options={{ title: 'Santa Clara' }} />
       <Stack.Screen name="SejarahGereja" component={SejarahGerejaScreen} options={{ title: 'Sejarah Gereja' }} />
       <Stack.Screen name="Seksi" component={SeksiScreen} options={{ title: 'Seksi' }} />
+      <Stack.Screen name="Booking" component={BookingScreen} options={{ title: 'Pilih Bangku', headerShown: false }} />
     </Stack.Navigator>
   );
 };

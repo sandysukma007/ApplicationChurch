@@ -6,21 +6,22 @@
 - [x] Add RLS policies for the new tables
 
 ## Phase 2: TypeScript Types
-- [ ] Add Seat type
-- [ ] Add Reservation type
-- [ ] Add SeatAvailability type
+- [x] Add Seat type
+- [x] Add Reservation type
+- [x] Add SeatAvailability type
 
 ## Phase 3: API Functions
-- [ ] Add getSeatAvailability function
-- [ ] Add getReservationsByMass function
-- [ ] Add createReservation function
-- [ ] Add cancelReservation function
+- [x] Add getSeatAvailability function
+- [x] Add getReservationsByMass function
+- [x] Add getUserReservationForMass function
+- [x] Add createReservation function
+- [x] Add cancelReservation function
 
 ## Phase 4: Booking Screen
-- [ ] Create BookingScreen.tsx with seat layout
-- [ ] Implement seat selection logic
-- [ ] Implement reservation form
+- [x] Create BookingScreen.tsx with seat layout
+- [x] Implement seat selection logic
+- [x] Implement reservation form
 
 ## Phase 5: Navigation & Integration
-- [ ] Add Booking route to MainNavigator
-- [ ] Add booking button to MassesScreen
+- [x] Add Booking route to MainNavigator
+- [x] Add booking button to MassesScreen

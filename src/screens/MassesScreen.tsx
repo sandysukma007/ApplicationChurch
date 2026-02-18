@@ -8,15 +8,20 @@ import {
   RefreshControl,
   TouchableOpacity
 } from 'react-native';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { Loading } from '../components/Loading';
 import { getMasses } from '../utils/api';
 import { Mass } from '../types';
 import { colors } from '../styles/theme';
+import { MainStackParamList } from '../navigation/MainNavigator';
+
+type MassesScreenNavigationProp = NavigationProp<MainStackParamList, 'Masses'>;
 
 export const MassesScreen: React.FC = () => {
   const [masses, setMasses] = useState<Mass[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const navigation = useNavigation<MassesScreenNavigationProp>();
 
   useEffect(() => {
     loadMasses();
@@ -73,6 +78,14 @@ export const MassesScreen: React.FC = () => {
     return date.toLocaleDateString('id-ID', { month: 'short' }).toUpperCase();
   };
 
+  const handleBooking = (mass: Mass) => {
+    navigation.navigate('Booking', {
+      massId: mass.id,
+      massTitle: mass.title,
+      massDateTime: mass.date_time,
+    });
+  };
+
   if (loading) {
     return <Loading />;
   }
@@ -105,8 +118,11 @@ export const MassesScreen: React.FC = () => {
         </View>
       )}
       <View style={styles.cardFooter}>
-        <TouchableOpacity style={styles.detailButton}>
-          <Text style={styles.detailButtonText}>Lihat Detail</Text>
+        <TouchableOpacity
+          style={styles.bookingButton}
+          onPress={() => handleBooking(item)}
+        >
+          <Text style={styles.bookingButtonText}>📅 Reservasi Bangku</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -305,14 +321,14 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: 'rgba(0,0,0,0.05)',
   },
-  detailButton: {
+  bookingButton: {
     backgroundColor: colors.primary,
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 10,
     alignItems: 'center',
   },
-  detailButtonText: {
+  bookingButtonText: {
     color: colors.white,
     fontSize: 14,
     fontWeight: '600',
