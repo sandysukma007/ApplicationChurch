@@ -95,3 +95,42 @@ export interface DonationFormData {
   amount: number;
   method: string;
 }
+
+// Seat Booking Types
+export interface Seat {
+  id: string;
+  column_name: 'A' | 'B' | 'C';
+  row_number: 1 | 2;
+  seat_number: number;
+  capacity: number;
+  created_at: string;
+}
+
+export interface SeatAvailability {
+  seat_id: string;
+  column_name: 'A' | 'B' | 'C';
+  row_number: 1 | 2;
+  seat_number: number;
+  capacity: number;
+  booked_count: number;
+  available_count: number;
+}
+
+export interface Reservation {
+  id: string;
+  mass_id: string;
+  seat_id: string;
+  user_id: string;
+  number_of_people: number;
+  status: 'confirmed' | 'cancelled';
+  created_at: string;
+  updated_at: string;
+  // Joined data
+  seat?: Seat;
+}
+
+export interface ReservationFormData {
+  mass_id: string;
+  seat_id: string;
+  number_of_people: number;
+}

@@ -1,5 +1,5 @@
 import { supabase } from '../supabaseClient';
-import { Profile, Media, Mass, Donation, Announcement, ProfileFormData, DonationFormData } from '../types';
+import { Profile, Media, Mass, Donation, Announcement, ProfileFormData, DonationFormData, SeatAvailability, Reservation, ReservationFormData } from '../types';
 
 export const getProfile = async (userId: string): Promise<Profile | null> => {
   const { data, error } = await supabase
