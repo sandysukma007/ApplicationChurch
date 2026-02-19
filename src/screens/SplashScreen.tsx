@@ -1,7 +1,39 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Image, Alert, Platform } from 'react-native';
+import { checkAndRequestAllPermissions, getPermissionStatus } from '../utils/permissions';
 
 export const SplashScreen: React.FC = () => {
+  const [permissionStatus, setPermissionStatus] = useState<string>('Checking...');
+
+  useEffect(() => {
+    const requestPermissions = async () => {
+      try {
+        // Check current permission status
+        const status = await getPermissionStatus();
+        setPermissionStatus(status);
+        console.log('Permission status:', status);
+
+        // Request permissions on app startup (only for Android)
+        if (Platform.OS === 'android') {
+          // Small delay to let the splash screen show first
+          setTimeout(async () => {
+            const results = await checkAndRequestAllPermissions();
+            console.log('Permission results:', results);
+
+            if (!results.storage) {
+              console.log('Storage permission not granted on startup');
+              // Don't block the app, user will be asked again when downloading
+            }
+          }, 1000);
+        }
+      } catch (error) {
+        console.error('Error requesting permissions on startup:', error);
+      }
+    };
+
+    requestPermissions();
+  }, []);
+
   return (
     <View style={styles.container}>
       <Image
@@ -10,9 +42,13 @@ export const SplashScreen: React.FC = () => {
       />
       <Text style={styles.title}>Santa Clara App</Text>
       <Text style={styles.subtitle}>Welcome to our community</Text>
+      {Platform.OS === 'android' && (
+        <Text style={styles.permissionStatus}>{permissionStatus}</Text>
+      )}
     </View>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {
@@ -37,5 +73,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     color: '#666',
+  },
+  permissionStatus: {
+    fontSize: 12,
+    textAlign: 'center',
+    color: '#999',
+    marginTop: 20,
+    fontStyle: 'italic',
   },
 });

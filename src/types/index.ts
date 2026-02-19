@@ -134,3 +134,23 @@ export interface ReservationFormData {
   seat_id: string;
   number_of_people: number;
 }
+
+// Form Types
+export type FormCategory = 'Sakramen' | 'Perkawinan' | 'Administrasi' | 'Lainnya';
+
+export interface Form {
+  id: string;
+  title: string;
+  code?: string;
+  description?: string;
+  file_url?: string;
+  file_path?: string;
+  file_name?: string;
+  category: FormCategory;
+  icon: string;
+  gradient_colors: string[];
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}

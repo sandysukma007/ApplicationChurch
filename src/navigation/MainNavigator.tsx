@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
+
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { HomeScreen } from '../screens/HomeScreen';
 import { MassesScreen } from '../screens/MassesScreen';
@@ -16,6 +17,11 @@ import { SantaClaraAssisiScreen } from '../screens/SantaClaraAssisiScreen';
 import { SejarahGerejaScreen } from '../screens/SejarahGerejaScreen';
 import { SeksiScreen } from '../screens/SeksiScreen';
 import { BookingScreen } from '../screens/BookingScreen';
+import { KumpulanFormulirScreen } from '../screens/KumpulanFormulirScreen';
+
+// Lazy load to prevent circular dependency
+const BaptisBayiFormScreen = lazy(() => import('../screens/BaptisBayiFormScreen').then(module => ({ default: module.BaptisBayiFormScreen })));
+
 
 export type MainStackParamList = {
   Home: undefined;
@@ -38,6 +44,8 @@ export type MainStackParamList = {
     massTitle: string;
     massDateTime: string;
   };
+  KumpulanFormulir: undefined;
+  BaptisBayiForm: undefined;
 };
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
@@ -61,6 +69,18 @@ export const MainNavigator: React.FC = () => {
       <Stack.Screen name="SejarahGereja" component={SejarahGerejaScreen} options={{ title: 'Sejarah Gereja' }} />
       <Stack.Screen name="Seksi" component={SeksiScreen} options={{ title: 'Seksi' }} />
       <Stack.Screen name="Booking" component={BookingScreen} options={{ title: 'Pilih Bangku', headerShown: false }} />
+      <Stack.Screen name="KumpulanFormulir" component={KumpulanFormulirScreen} options={{ title: 'Kumpulan Formulir' }} />
+      <Stack.Screen
+        name="BaptisBayiForm"
+        options={{ title: 'Form Baptis Bayi' }}
+      >
+        {props => (
+          <Suspense fallback={null}>
+            <BaptisBayiFormScreen {...props} />
+          </Suspense>
+        )}
+      </Stack.Screen>
+
     </Stack.Navigator>
   );
 };
