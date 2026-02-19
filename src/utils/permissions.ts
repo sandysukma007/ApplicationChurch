@@ -3,7 +3,8 @@ import { Alert, Linking, Platform, PermissionsAndroid } from 'react-native';
 
 /**
  * Check if storage permission is granted
- * For Android 10+ (API 29+), uses scoped storage approach
+ * For Android 13+ (API 33+), uses READ_MEDIA_* permissions
+ * For Android 10-12 (API 29-32), uses scoped storage approach
  * For Android 9 and below, uses traditional permission
  */
 export const checkStoragePermission = async (): Promise<boolean> => {
@@ -14,9 +15,24 @@ export const checkStoragePermission = async (): Promise<boolean> => {
   try {
     const apiLevel = Platform.Version as number;
 
-    // For Android 10+ (API 29+), we don't need WRITE_EXTERNAL_STORAGE for app-specific directories
-    // We use scoped storage approach - app directories don't require permission
-    if (apiLevel >= 29) {
+    // For Android 13+ (API 33+), check new media permissions
+    if (apiLevel >= 33) {
+      const imagesGranted = await PermissionsAndroid.check(
+        PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES
+      );
+      const videoGranted = await PermissionsAndroid.check(
+        PermissionsAndroid.PERMISSIONS.READ_MEDIA_VIDEO
+      );
+      const audioGranted = await PermissionsAndroid.check(
+        PermissionsAndroid.PERMISSIONS.READ_MEDIA_AUDIO
+      );
+
+      // Return true if at least one media permission is granted
+      return imagesGranted || videoGranted || audioGranted;
+    }
+
+    // For Android 10-12 (API 29-32), we don't need WRITE_EXTERNAL_STORAGE for app-specific directories
+    else if (apiLevel >= 29) {
       // Android 10+ - Scoped storage, no permission needed for app directories
       // Just check if we can access basic storage
       return true;
@@ -34,6 +50,7 @@ export const checkStoragePermission = async (): Promise<boolean> => {
 };
 
 
+
 /**
  * Request storage permission with proper handling for different Android versions
  */
@@ -45,8 +62,22 @@ export const requestStoragePermission = async (): Promise<boolean> => {
   try {
     const apiLevel = Platform.Version as number;
 
-    // For Android 10+ (API 29+), use scoped storage approach
-    if (apiLevel >= 29) {
+    // For Android 13+ (API 33+), request new media permissions
+    if (apiLevel >= 33) {
+      const result = await PermissionsAndroid.requestMultiple([
+        PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES,
+        PermissionsAndroid.PERMISSIONS.READ_MEDIA_VIDEO,
+        PermissionsAndroid.PERMISSIONS.READ_MEDIA_AUDIO,
+      ]);
+
+      const imagesGranted = result[PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES] === PermissionsAndroid.RESULTS.GRANTED;
+      const videoGranted = result[PermissionsAndroid.PERMISSIONS.READ_MEDIA_VIDEO] === PermissionsAndroid.RESULTS.GRANTED;
+      const audioGranted = result[PermissionsAndroid.PERMISSIONS.READ_MEDIA_AUDIO] === PermissionsAndroid.RESULTS.GRANTED;
+
+      return imagesGranted || videoGranted || audioGranted;
+    }
+    // For Android 10-12 (API 29-32), use scoped storage approach
+    else if (apiLevel >= 29) {
       // For Android 10+, we use app-specific directories which don't require permission
       // But we still request for better UX and future compatibility
       const result = await PermissionsAndroid.requestMultiple([
@@ -78,6 +109,7 @@ export const requestStoragePermission = async (): Promise<boolean> => {
     return false;
   }
 };
+
 
 /**
  * Request permission with explanation dialog
@@ -134,6 +166,18 @@ export const openAppSettings = (): void => {
 };
 
 /**
+ * Open special app access settings for MANAGE_EXTERNAL_STORAGE
+ * This will show the "All files access" permission in settings
+ */
+export const openManageStorageSettings = (): void => {
+  if (Platform.OS === 'android') {
+    // Open the specific settings page for managing all files access
+    Linking.openURL('package:com.santaclaraapp');
+  }
+};
+
+
+/**
  * Show permission denied alert with option to open settings
  */
 export const showPermissionDeniedAlert = (): void => {
@@ -185,7 +229,16 @@ export const getPermissionStatus = async (): Promise<string> => {
     const apiLevel = Platform.Version as number;
     const hasPermission = await checkStoragePermission();
 
-    return `Android API ${apiLevel} - Storage Permission: ${hasPermission ? 'Granted' : 'Denied'}`;
+    let permissionType = 'Unknown';
+    if (apiLevel >= 33) {
+      permissionType = 'READ_MEDIA_* (Android 13+)';
+    } else if (apiLevel >= 29) {
+      permissionType = 'Scoped Storage (Android 10-12)';
+    } else {
+      permissionType = 'WRITE_EXTERNAL_STORAGE (Android 9-)';
+    }
+
+    return `Android API ${apiLevel} - ${permissionType} - Status: ${hasPermission ? 'Granted' : 'Denied'}`;
   } catch (error) {
     return `Error checking permission: ${error}`;
   }
