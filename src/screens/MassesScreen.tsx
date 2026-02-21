@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { Loading } from '../components/Loading';
-import { getMasses } from '../utils/api';
+import { getMassesWithImam } from '../utils/masses';
 import { Mass } from '../types';
 import { colors } from '../styles/theme';
 import { MainStackParamList } from '../navigation/MainNavigator';
@@ -29,7 +29,7 @@ export const MassesScreen: React.FC = () => {
 
   const loadMasses = async () => {
     try {
-      const data = await getMasses();
+      const data = await getMassesWithImam();
       console.log('Fetched masses data:', data);
       setMasses(data);
     } catch (error: any) {
@@ -122,7 +122,7 @@ export const MassesScreen: React.FC = () => {
           style={styles.bookingButton}
           onPress={() => handleBooking(item)}
         >
-          <Text style={styles.bookingButtonText}>📅 Reservasi Bangku</Text>
+          <Text style={styles.bookingButtonText}>📅 Reservasi Kuota</Text>
         </TouchableOpacity>
       </View>
     </View>

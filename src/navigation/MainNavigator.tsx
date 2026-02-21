@@ -68,7 +68,7 @@ export const MainNavigator: React.FC = () => {
       <Stack.Screen name="SantaClaraAssisi" component={SantaClaraAssisiScreen} options={{ title: 'Santa Clara' }} />
       <Stack.Screen name="SejarahGereja" component={SejarahGerejaScreen} options={{ title: 'Sejarah Gereja' }} />
       <Stack.Screen name="Seksi" component={SeksiScreen} options={{ title: 'Seksi' }} />
-      <Stack.Screen name="Booking" component={BookingScreen} options={{ title: 'Pilih Bangku', headerShown: false }} />
+<Stack.Screen name="Booking" component={BookingScreen} options={{ title: 'Pilih Kuota', headerShown: false }} />
       <Stack.Screen name="KumpulanFormulir" component={KumpulanFormulirScreen} options={{ title: 'Kumpulan Formulir' }} />
       <Stack.Screen
         name="BaptisBayiForm"

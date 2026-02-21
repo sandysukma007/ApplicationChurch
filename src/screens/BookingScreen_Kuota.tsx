@@ -20,7 +20,7 @@ import { MainStackParamList } from '../navigation/MainNavigator';
 type BookingScreenRouteProp = RouteProp<MainStackParamList, 'Booking'>;
 type BookingScreenNavigationProp = NativeStackNavigationProp<MainStackParamList, 'Booking'>;
 
-export const BookingScreen: React.FC = () => {
+export const BookingScreen_Kuota: React.FC = () => {
   const route = useRoute<BookingScreenRouteProp>();
   const navigation = useNavigation<BookingScreenNavigationProp>();
   const { massId, massTitle, massDateTime } = route.params;
