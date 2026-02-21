@@ -12,6 +12,7 @@ import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Loading } from '../components/Loading';
 import { createReservation, getUserReservationForMass } from '../utils/api';
+import { getUserReservationForDate } from '../utils/reservations';
 import { getFloorQuotasWithAvailability } from '../utils/floor_quotas';
 import { FloorWithAvailability, Reservation } from '../types';
 import { colors } from '../styles/theme';
@@ -30,6 +31,7 @@ export const BookingScreen: React.FC = () => {
   const [selectedFloor, setSelectedFloor] = useState<FloorWithAvailability | null>(null);
   const [numberOfPeople, setNumberOfPeople] = useState(1);
   const [userReservation, setUserReservation] = useState<Reservation | null>(null);
+  const [hasReservationOnSameDate, setHasReservationOnSameDate] = useState(false);
   const [isBooking, setIsBooking] = useState(false);
 
   useEffect(() => {
@@ -39,12 +41,18 @@ export const BookingScreen: React.FC = () => {
   const loadFloorQuotas = async () => {
     try {
       setLoading(true);
-      const [floorData, reservationData] = await Promise.all([
+      const [floorData, reservationData, dateReservation] = await Promise.all([
         getFloorQuotasWithAvailability(massId),
         getUserReservationForMass(massId),
+        getUserReservationForDate(massDateTime),
       ]);
       setFloors(floorData);
       setUserReservation(reservationData);
+
+      // Check if user has reservation on the same date (different mass)
+      // If they have reservation for this specific mass, hasReservationOnSameDate should be false
+      // If they have reservation for a different mass on the same date, hasReservationOnSameDate should be true
+      setHasReservationOnSameDate(!!dateReservation && dateReservation.mass_id !== massId);
 
       // If user already has reservation, select that floor
       if (reservationData?.floor_quota_id) {
@@ -62,6 +70,8 @@ export const BookingScreen: React.FC = () => {
     }
   };
 
+  const MAX_PEOPLE = 5; // Maximum booking limit per reservation
+
   const handleFloorSelect = (floor: FloorWithAvailability) => {
     // Check if floor is full
     if (floor.isFull) {
@@ -77,19 +87,21 @@ export const BookingScreen: React.FC = () => {
 
     setSelectedFloor(floor);
 
-    // Adjust number of people if it exceeds available
-    if (numberOfPeople > floor.available) {
-      setNumberOfPeople(floor.available);
+    // Adjust number of people if it exceeds available or max limit
+    const maxAllowed = Math.min(floor.available, MAX_PEOPLE);
+    if (numberOfPeople > maxAllowed) {
+      setNumberOfPeople(maxAllowed);
     }
   };
 
   const handleNumberOfPeopleChange = (newCount: number) => {
     if (selectedFloor) {
-      // Ensure we don't exceed available quota
-      const maxAllowed = Math.min(newCount, selectedFloor.available);
+      // Ensure we don't exceed available quota and max limit of 5
+      const maxAllowed = Math.min(newCount, selectedFloor.available, MAX_PEOPLE);
       setNumberOfPeople(maxAllowed);
     } else {
-      setNumberOfPeople(newCount);
+      // Also limit to max 5 when no floor is selected
+      setNumberOfPeople(Math.min(newCount, MAX_PEOPLE));
     }
   };
 
@@ -266,6 +278,17 @@ export const BookingScreen: React.FC = () => {
         </View>
       )}
 
+      {/* Has Reservation on Same Date (Different Mass) */}
+      {hasReservationOnSameDate && !userReservation && (
+        <View style={styles.sameDateReservationInfo}>
+          <Text style={styles.sameDateReservationTitle}>⚠️ Sudah Booking di Jadwal Lain</Text>
+          <Text style={styles.sameDateReservationText}>
+            Anda sudah memiliki reservasi untuk Misa lain di tanggal yang sama.
+            Setiap pengguna hanya dapat memesan 1 jadwal Misa per hari.
+          </Text>
+        </View>
+      )}
+
       {/* Floor Selection */}
       <ScrollView style={styles.mainContent} contentContainerStyle={styles.mainContentContainer}>
         <Text style={styles.sectionTitle}>Pilih Lantai</Text>
@@ -303,10 +326,10 @@ export const BookingScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.numberButton,
-                  numberOfPeople >= selectedFloor.available && styles.numberButtonDisabled
+                  (numberOfPeople >= selectedFloor.available || numberOfPeople >= MAX_PEOPLE) && styles.numberButtonDisabled
                 ]}
-                onPress={() => handleNumberOfPeopleChange(Math.min(selectedFloor.available, numberOfPeople + 1))}
-                disabled={numberOfPeople >= selectedFloor.available}
+                onPress={() => handleNumberOfPeopleChange(Math.min(selectedFloor.available, numberOfPeople + 1, MAX_PEOPLE))}
+                disabled={numberOfPeople >= selectedFloor.available || numberOfPeople >= MAX_PEOPLE}
               >
                 <Text style={styles.numberButtonText}>+</Text>
               </TouchableOpacity>
@@ -409,6 +432,23 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   reservationDetail: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.9)',
+  },
+  sameDateReservationInfo: {
+    backgroundColor: '#F39C12',
+    marginHorizontal: 16,
+    marginTop: 16,
+    padding: 16,
+    borderRadius: 12,
+  },
+  sameDateReservationTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.white,
+    marginBottom: 8,
+  },
+  sameDateReservationText: {
     fontSize: 14,
     color: 'rgba(255,255,255,0.9)',
   },

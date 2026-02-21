@@ -107,3 +107,57 @@ export const deleteReservation = async (reservationId: string): Promise<void> =>
     .eq('id', reservationId);
   if (error) throw error;
 };
+
+// Get user's reservation for a specific date (any mass on that date)
+export const getUserReservationForDate = async (massDateTime: string): Promise<Reservation | null> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  // Extract the date part from the mass datetime
+  const massDate = new Date(massDateTime).toISOString().split('T')[0];
+
+  // Get all user's confirmed reservations with mass data
+  const { data: reservations, error } = await supabase
+    .from('reservations')
+    .select('*, mass:masses(date_time), floor_quota:floor_quotas(*)')
+    .eq('user_id', user.id)
+    .eq('status', 'confirmed');
+
+  if (error) throw error;
+  if (!reservations || reservations.length === 0) return null;
+
+  // Check if any reservation is on the same date
+  const reservationOnSameDate = reservations.find(res => {
+    if (!res.mass?.date_time) return false;
+    const resDate = new Date(res.mass.date_time).toISOString().split('T')[0];
+    return resDate === massDate;
+  });
+
+  return reservationOnSameDate || null;
+};
+
+// Get all user's reservations for a specific date
+export const getUserReservationsForDate = async (massDateTime: string): Promise<Reservation[]> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  // Extract the date part from the mass datetime
+  const massDate = new Date(massDateTime).toISOString().split('T')[0];
+
+  // Get all user's confirmed reservations with mass data
+  const { data: reservations, error } = await supabase
+    .from('reservations')
+    .select('*, mass:masses(date_time, title), floor_quota:floor_quotas(*)')
+    .eq('user_id', user.id)
+    .eq('status', 'confirmed');
+
+  if (error) throw error;
+  if (!reservations || reservations.length === 0) return [];
+
+  // Filter reservations on the same date
+  return reservations.filter(res => {
+    if (!res.mass?.date_time) return false;
+    const resDate = new Date(res.mass.date_time).toISOString().split('T')[0];
+    return resDate === massDate;
+  });
+};

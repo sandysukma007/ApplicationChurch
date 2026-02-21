@@ -8,9 +8,10 @@ import {
   RefreshControl,
   TouchableOpacity
 } from 'react-native';
-import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { useNavigation, NavigationProp, useFocusEffect } from '@react-navigation/native';
 import { Loading } from '../components/Loading';
 import { getMassesWithImam } from '../utils/masses';
+import { getUserReservationForDate } from '../utils/reservations';
 import { Mass } from '../types';
 import { colors } from '../styles/theme';
 import { MainStackParamList } from '../navigation/MainNavigator';
@@ -21,17 +22,30 @@ export const MassesScreen: React.FC = () => {
   const [masses, setMasses] = useState<Mass[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [reservationsByDate, setReservationsByDate] = useState<Record<string, boolean>>({});
   const navigation = useNavigation<MassesScreenNavigationProp>();
 
-  useEffect(() => {
-    loadMasses();
-  }, []);
+  // Reload data when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      loadMasses();
+    }, [])
+  );
 
   const loadMasses = async () => {
     try {
+      setLoading(true);
       const data = await getMassesWithImam();
       console.log('Fetched masses data:', data);
       setMasses(data);
+
+      // Check reservations for each mass date
+      const reservationStatus: Record<string, boolean> = {};
+      for (const mass of data) {
+        const reservation = await getUserReservationForDate(mass.date_time);
+        reservationStatus[mass.date_time] = !!reservation;
+      }
+      setReservationsByDate(reservationStatus);
     } catch (error: any) {
       console.error('Error loading masses:', error);
     } finally {
@@ -90,43 +104,50 @@ export const MassesScreen: React.FC = () => {
     return <Loading />;
   }
 
-  const renderMassItem = ({ item }: { item: Mass }) => (
-    <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <View style={styles.dateContainer}>
-          <Text style={styles.dayName}>{getDayName(item.date_time)}</Text>
-          <Text style={styles.dayNumber}>{getDayNumber(item.date_time)}</Text>
-          <Text style={styles.monthName}>{getMonthName(item.date_time)}</Text>
-        </View>
-        <View style={styles.cardContent}>
-          <Text style={styles.massTitle}>{item.title}</Text>
-          <View style={styles.timeContainer}>
-            <Text style={styles.timeIcon}>🕐</Text>
-            <Text style={styles.timeText}>{formatTime(item.date_time)}</Text>
+  const renderMassItem = ({ item }: { item: Mass }) => {
+    const hasReservationOnDate = reservationsByDate[item.date_time] || false;
+
+    return (
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <View style={styles.dateContainer}>
+            <Text style={styles.dayName}>{getDayName(item.date_time)}</Text>
+            <Text style={styles.dayNumber}>{getDayNumber(item.date_time)}</Text>
+            <Text style={styles.monthName}>{getMonthName(item.date_time)}</Text>
           </View>
-          {item.pastor && (
-            <View style={styles.pastorContainer}>
-              <Text style={styles.pastorIcon}>👨‍</Text>
-              <Text style={styles.pastorText}>{item.pastor}</Text>
+          <View style={styles.cardContent}>
+            <Text style={styles.massTitle}>{item.title}</Text>
+            <View style={styles.timeContainer}>
+              <Text style={styles.timeIcon}>🕐</Text>
+              <Text style={styles.timeText}>{formatTime(item.date_time)}</Text>
             </View>
-          )}
+            {item.pastor && (
+              <View style={styles.pastorContainer}>
+                <Text style={styles.pastorIcon}>👨‍</Text>
+                <Text style={styles.pastorText}>{item.pastor}</Text>
+              </View>
+            )}
+          </View>
+        </View>
+        {item.description && (
+          <View style={styles.descriptionContainer}>
+            <Text style={styles.descriptionText}>{item.description}</Text>
+          </View>
+        )}
+        <View style={styles.cardFooter}>
+          <TouchableOpacity
+            style={hasReservationOnDate ? styles.bookingButtonDisabled : styles.bookingButton}
+            onPress={() => handleBooking(item)}
+            disabled={hasReservationOnDate}
+          >
+            <Text style={hasReservationOnDate ? styles.bookingButtonTextDisabled : styles.bookingButtonText}>
+              {hasReservationOnDate ? '✓ Sudah Booking di Jadwal Lain' : '📅 Reservasi Kuota'}
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
-      {item.description && (
-        <View style={styles.descriptionContainer}>
-          <Text style={styles.descriptionText}>{item.description}</Text>
-        </View>
-      )}
-      <View style={styles.cardFooter}>
-        <TouchableOpacity
-          style={styles.bookingButton}
-          onPress={() => handleBooking(item)}
-        >
-          <Text style={styles.bookingButtonText}>📅 Reservasi Kuota</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -328,7 +349,19 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
   },
+  bookingButtonDisabled: {
+    backgroundColor: '#27AE60',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
   bookingButtonText: {
+    color: colors.white,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  bookingButtonTextDisabled: {
     color: colors.white,
     fontSize: 14,
     fontWeight: '600',
