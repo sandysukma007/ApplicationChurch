@@ -11,7 +11,7 @@ import {
 
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import * as RNHTMLtoPDF from 'react-native-html-to-pdf';
+import RNHTMLtoPDF from 'react-native-html-to-pdf';
 
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';

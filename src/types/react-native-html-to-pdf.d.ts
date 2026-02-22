@@ -14,5 +14,11 @@ declare module 'react-native-html-to-pdf' {
     numberOfPages?: number;
   }
 
-  export function convert(options: PDFOptions): Promise<PDFResult>;
+  function RNHTMLtoPDF(options: PDFOptions): Promise<PDFResult>;
+  namespace RNHTMLtoPDF {
+    function convert(options: PDFOptions): Promise<PDFResult>;
+  }
+
+  export default RNHTMLtoPDF;
+  export { convert };
 }
