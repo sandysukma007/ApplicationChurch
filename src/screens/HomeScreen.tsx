@@ -16,8 +16,9 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Button } from '../components/Button';
 import { Loading } from '../components/Loading';
 import { getAnnouncements, getMasses, getUpcomingMasses } from '../utils/api';
+import { getUserReservations } from '../utils/reservations';
 import { logout } from '../utils/auth';
-import { Announcement, Mass } from '../types';
+import { Announcement, Mass, Reservation } from '../types';
 import { colors } from '../styles/theme';
 import { supabase } from '../supabaseClient';
 
@@ -34,12 +35,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [angelusMinutes, setAngelusMinutes] = useState<number | null>(null);
   const [upcomingMass, setUpcomingMass] = useState<Mass | null>(null);
   const [countdown, setCountdown] = useState<{ days: number; hours: number; minutes: number } | null>(null);
+  const [userReservations, setUserReservations] = useState<Reservation[]>([]);
+  const [massCountdown, setMassCountdown] = useState<{ text: string; isUrgent: boolean } | null>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
 
   useEffect(() => {
     loadRecentAnnouncements();
     loadUserProfile();
+    loadUserReservations();
     checkAngelusTime();
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -54,6 +58,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       }),
     ]).start();
   }, []);
+
+  // Update countdown every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      updateMassCountdown();
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, [userReservations]);
 
   useEffect(() => {
     const backAction = () => {
@@ -112,6 +125,67 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     } catch (error: any) {
       console.error('Error loading user profile:', error);
     }
+  };
+
+  const loadUserReservations = async () => {
+    try {
+      const reservations = await getUserReservations();
+      // Filter only confirmed reservations
+      const confirmedReservations = reservations.filter(r => r.status === 'confirmed');
+      setUserReservations(confirmedReservations);
+
+      // Update countdown for the nearest upcoming mass
+      updateMassCountdown(confirmedReservations);
+    } catch (error: any) {
+      console.error('Error loading user reservations:', error);
+    }
+  };
+
+  const updateMassCountdown = (reservations?: Reservation[]) => {
+    const reservationsToUse = reservations || userReservations;
+    if (reservationsToUse.length === 0) {
+      setMassCountdown(null);
+      return;
+    }
+
+    const now = new Date();
+    let nearestMass: { dateTime: Date; reservation: Reservation } | null = null;
+
+    for (const res of reservationsToUse) {
+      if (res.mass?.date_time) {
+        const massDateTime = new Date(res.mass.date_time);
+        if (massDateTime > now) {
+          if (!nearestMass || massDateTime < nearestMass.dateTime) {
+            nearestMass = { dateTime: massDateTime, reservation: res };
+          }
+        }
+      }
+    }
+
+    if (!nearestMass) {
+      setMassCountdown(null);
+      return;
+    }
+
+    const diffMs = nearestMass.dateTime.getTime() - now.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    let countdownText: string;
+    let isUrgent = false;
+
+    if (diffMins < 60) {
+      countdownText = `Misa dimulai dalam ${diffMins} menit`;
+      isUrgent = true;
+    } else if (diffHours < 24) {
+      countdownText = `Misa dimulai dalam ${diffHours} jam`;
+      isUrgent = diffHours < 3;
+    } else {
+      countdownText = `Misa dimulai dalam ${diffDays} hari`;
+    }
+
+    setMassCountdown({ text: countdownText, isUrgent });
   };
 
   const checkAngelusTime = () => {
@@ -236,9 +310,64 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               {angelusMinutes !== null && (
                 <Text style={styles.angelusText}>Doa Angelus dalam {angelusMinutes} menit lagi</Text>
               )}
+              {/* Mass Countdown Warning */}
+              {massCountdown && (
+                <View style={[styles.massCountdownContainer, massCountdown.isUrgent && styles.massCountdownUrgent]}>
+                  <Icon name="event" size={16} color={colors.white} />
+                  <Text style={styles.massCountdownText}>{massCountdown.text}</Text>
+                </View>
+              )}
             </View>
           </LinearGradient>
         </Animated.View>
+
+        {/* User Reservations Section */}
+        {userReservations.length > 0 && (
+          <View style={styles.reservationSection}>
+            <View style={styles.sectionHeader}>
+              <Icon name="event_available" size={24} color={colors.primary} />
+              <Text style={styles.sectionTitle}>Reservasi Misa Anda</Text>
+            </View>
+            {userReservations.slice(0, 2).map((reservation) => (
+              <TouchableOpacity
+                key={reservation.id}
+                style={styles.reservationCard}
+                onPress={() => {
+                  if (reservation.mass) {
+                    navigation.navigate('Booking', {
+                      massId: reservation.mass.id,
+                      massTitle: reservation.mass.title,
+                      massDateTime: reservation.mass.date_time,
+                    });
+                  }
+                }}
+              >
+                <View style={styles.reservationIcon}>
+                  <Icon name="church" size={24} color={colors.primary} />
+                </View>
+                <View style={styles.reservationInfo}>
+                  <Text style={styles.reservationTitle}>
+                    {reservation.mass?.title || 'Misa'}
+                  </Text>
+                  <Text style={styles.reservationDate}>
+                    {reservation.mass?.date_time
+                      ? formatDate(reservation.mass.date_time)
+                      : '-'}
+                  </Text>
+                  <View style={styles.reservationDetails}>
+                    <Text style={styles.reservationDetail}>
+                      📍 {reservation.floor_quota?.floor_name || '-'}
+                    </Text>
+                    <Text style={styles.reservationDetail}>
+                      👥 {reservation.number_of_people} orang
+                    </Text>
+                  </View>
+                </View>
+                <Icon name="chevron_right" size={24} color={colors.textSecondary} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         <View style={styles.content}>
           {/* Pengumuman Section */}
@@ -468,6 +597,76 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.9)',
     marginTop: 4,
     fontWeight: 'bold',
+  },
+  massCountdownContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginTop: 8,
+  },
+  massCountdownUrgent: {
+    backgroundColor: '#e53e3e',
+  },
+  massCountdownText: {
+    fontSize: 12,
+    color: colors.white,
+    fontWeight: 'bold',
+    marginLeft: 6,
+  },
+  reservationSection: {
+    backgroundColor: colors.white,
+    marginHorizontal: 16,
+    marginTop: -20,
+    marginBottom: 16,
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+    elevation: 5,
+  },
+  reservationCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 12,
+  },
+  reservationIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(26, 54, 93, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  reservationInfo: {
+    flex: 1,
+  },
+  reservationTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  reservationDate: {
+    fontSize: 13,
+    color: colors.secondary,
+    marginTop: 2,
+  },
+  reservationDetails: {
+    flexDirection: 'row',
+    marginTop: 4,
+  },
+  reservationDetail: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginRight: 12,
   },
   content: {
     flex: 1,

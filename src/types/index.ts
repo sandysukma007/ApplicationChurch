@@ -152,6 +152,7 @@ export interface Reservation {
   // Joined data
   seat?: Seat;
   floor_quota?: FloorQuota;
+  mass?: Mass;
 }
 
 export interface ReservationFormData {

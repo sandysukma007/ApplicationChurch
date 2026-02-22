@@ -121,10 +121,15 @@ export const MassesScreen: React.FC = () => {
               <Text style={styles.timeIcon}>🕐</Text>
               <Text style={styles.timeText}>{formatTime(item.date_time)}</Text>
             </View>
-            {item.pastor && (
+            {/* Show Imam if available, fallback to pastor */}
+            {(item.imam?.full_name || item.pastor) && (
               <View style={styles.pastorContainer}>
                 <Text style={styles.pastorIcon}>👨‍</Text>
-                <Text style={styles.pastorText}>{item.pastor}</Text>
+                <Text style={styles.pastorText}>
+                  {item.imam?.full_name
+                    ? (item.imam.title ? `${item.imam.title} ${item.imam.full_name}` : item.imam.full_name)
+                    : item.pastor}
+                </Text>
               </View>
             )}
           </View>
