@@ -1,5 +1,6 @@
 import { supabase } from '../supabaseClient';
 import { Reservation, ReservationFormData } from '../types';
+import { updateMassQuotaBooked } from './mass_quotas';
 
 // Get all reservations for a specific mass
 export const getReservationsByMass = async (massId: string): Promise<Reservation[]> => {
@@ -66,6 +67,9 @@ export const createSeatReservation = async (reservationData: ReservationFormData
 export const createQuotaReservation = async (reservationData: ReservationFormData): Promise<Reservation> => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('User not authenticated');
+  if (!reservationData.floor_quota_id) {
+    throw new Error('floor_quota_id is required for quota-based reservation');
+  }
 
   const { data, error } = await supabase
     .from('reservations')
@@ -79,6 +83,21 @@ export const createQuotaReservation = async (reservationData: ReservationFormDat
     .select('*, floor_quota:floor_quotas(*)')
     .single();
   if (error) throw error;
+
+  // Manually update the mass quota as a fallback in case the database trigger doesn't work
+  // This ensures current_booked is always updated when a reservation is made
+  try {
+    await updateMassQuotaBooked(
+      reservationData.mass_id,
+      reservationData.floor_quota_id,
+      reservationData.number_of_people,
+      'increment'
+    );
+  } catch (quotaError) {
+    console.error('Warning: Failed to update mass quota:', quotaError);
+    // Don't throw error - the reservation was created successfully
+  }
+
   return data;
 };
 
@@ -92,20 +111,66 @@ export const createReservation = async (reservationData: ReservationFormData): P
 
 // Cancel a reservation
 export const cancelReservation = async (reservationId: string): Promise<void> => {
+  // First get the reservation to know the floor_quota and number_of_people
+  const { data: reservation, error: fetchError } = await supabase
+    .from('reservations')
+    .select('*')
+    .eq('id', reservationId)
+    .maybeSingle();
+
+  if (fetchError) throw fetchError;
+
   const { error } = await supabase
     .from('reservations')
     .update({ status: 'cancelled', updated_at: new Date().toISOString() })
     .eq('id', reservationId);
   if (error) throw error;
+
+  // Manually update the mass quota to decrement the booked count
+  if (reservation?.floor_quota_id && reservation?.number_of_people) {
+    try {
+      await updateMassQuotaBooked(
+        reservation.mass_id,
+        reservation.floor_quota_id,
+        reservation.number_of_people,
+        'decrement'
+      );
+    } catch (quotaError) {
+      console.error('Warning: Failed to update mass quota:', quotaError);
+    }
+  }
 };
 
 // Delete a reservation
 export const deleteReservation = async (reservationId: string): Promise<void> => {
+  // First get the reservation to know the floor_quota and number_of_people
+  const { data: reservation, error: fetchError } = await supabase
+    .from('reservations')
+    .select('*')
+    .eq('id', reservationId)
+    .maybeSingle();
+
+  if (fetchError) throw fetchError;
+
   const { error } = await supabase
     .from('reservations')
     .delete()
     .eq('id', reservationId);
   if (error) throw error;
+
+  // Manually update the mass quota to decrement the booked count
+  if (reservation?.floor_quota_id && reservation?.number_of_people) {
+    try {
+      await updateMassQuotaBooked(
+        reservation.mass_id,
+        reservation.floor_quota_id,
+        reservation.number_of_people,
+        'decrement'
+      );
+    } catch (quotaError) {
+      console.error('Warning: Failed to update mass quota:', quotaError);
+    }
+  }
 };
 
 // Get user's reservation for a specific date (any mass on that date)

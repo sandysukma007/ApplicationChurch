@@ -11,7 +11,7 @@ import {
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Loading } from '../components/Loading';
-import { createReservation, getUserReservationForMass } from '../utils/api';
+import { createReservation, getUserReservationForMass, fixMassQuotasFromReservations } from '../utils/api';
 import { getUserReservationForDate } from '../utils/reservations';
 import { getFloorQuotasWithAvailability } from '../utils/floor_quotas';
 import { FloorWithAvailability, Reservation } from '../types';
@@ -41,6 +41,16 @@ export const BookingScreen: React.FC = () => {
   const loadFloorQuotas = async () => {
     try {
       setLoading(true);
+
+      // First fix the mass_quotas to ensure they're in sync with actual reservations
+      // This is a safety measure in case the database trigger didn't work
+      try {
+        await fixMassQuotasFromReservations(massId);
+      } catch (fixError) {
+        console.error('Error fixing mass quotas:', fixError);
+        // Continue anyway - the quotas might already be correct
+      }
+
       const [floorData, reservationData, dateReservation] = await Promise.all([
         getFloorQuotasWithAvailability(massId),
         getUserReservationForMass(massId),

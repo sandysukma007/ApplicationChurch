@@ -5,6 +5,7 @@ export * from './profiles';
 export * from './masses';
 export * from './imams';
 export * from './floor_quotas';
+export * from './mass_quotas';
 export * from './reservations';
 export * from './donations';
 export * from './media';
