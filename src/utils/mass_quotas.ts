@@ -19,22 +19,54 @@ export const updateMassQuotaBooked = async (
   floorQuotaId: string,
   numberOfPeople: number,
   operation: 'increment' | 'decrement'
-): Promise<MassQuota> => {
-  // First get current value
+): Promise<MassQuota | null> => {
+  // First get current quota record
   const { data: current, error: fetchError } = await supabase
     .from('mass_quotas')
-    .select('current_booked')
+    .select('*')
     .eq('mass_id', massId)
     .eq('floor_quota_id', floorQuotaId)
     .maybeSingle();
 
-  if (fetchError) throw fetchError;
+  if (fetchError) {
+    console.error('Error fetching mass quota:', fetchError);
+    throw fetchError;
+  }
 
-  const currentBooked = current?.current_booked || 0;
+  // If no record exists
+  if (!current) {
+    if (operation === 'increment') {
+      // Create new quota record with initial values
+      const { data: newQuota, error: insertError } = await supabase
+        .from('mass_quotas')
+        .insert({
+          mass_id: massId,
+          floor_quota_id: floorQuotaId,
+          current_booked: numberOfPeople,
+          max_quota: 0,
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .maybeSingle();
+
+      if (insertError) {
+        console.error('Error creating mass quota:', insertError);
+        throw insertError;
+      }
+      return newQuota;
+    } else {
+      // Decrement on non-existent record - throw descriptive error
+      throw new Error(`Mass quota record not found for mass_id: ${massId}, floor_quota_id: ${floorQuotaId}`);
+    }
+  }
+
+  // Calculate new booked value
+  const currentBooked = current.current_booked || 0;
   const newBooked = operation === 'increment'
     ? currentBooked + numberOfPeople
     : Math.max(0, currentBooked - numberOfPeople);
 
+  // Update the existing record
   const { data, error } = await supabase
     .from('mass_quotas')
     .update({
@@ -44,12 +76,13 @@ export const updateMassQuotaBooked = async (
     .eq('mass_id', massId)
     .eq('floor_quota_id', floorQuotaId)
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error('Error updating mass quota:', error);
     throw error;
   }
+
   return data;
 };
 
