@@ -1,9 +1,11 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { CustomAlert, CustomAlertRef } from '../components/CustomAlert';
 import { resetPassword } from '../utils/auth';
+import { theme } from '../styles/theme';
 
 interface ResetPasswordScreenProps {
   navigation: any;
@@ -18,8 +20,9 @@ export const ResetPasswordScreen: React.FC<ResetPasswordScreenProps> = ({ naviga
 
   const validate = () => {
     const newErrors: { newPassword?: string; confirmPassword?: string } = {};
-    if (!newPassword) newErrors.newPassword = 'New password is required';
-    if (newPassword !== confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
+    if (!newPassword) newErrors.newPassword = 'Password baru wajib diisi';
+    if (newPassword.length < 6) newErrors.newPassword = 'Password minimal 6 karakter';
+    if (newPassword !== confirmPassword) newErrors.confirmPassword = 'Password tidak cocok';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -29,9 +32,13 @@ export const ResetPasswordScreen: React.FC<ResetPasswordScreenProps> = ({ naviga
     setLoading(true);
     try {
       await resetPassword(newPassword);
-      alertRef.current?.show({ title: 'Success', message: 'Password reset successfully!', type: 'success' });
-      // Navigate back to Auth navigator which will show Login screen
-      navigation.navigate('Auth');
+      // Clear the password reset flag
+      await AsyncStorage.removeItem('needsPasswordReset');
+      alertRef.current?.show({ title: 'Berhasil', message: 'Password berhasil direset! Silakan login dengan password baru.', type: 'success' });
+      // Navigate to Login after a short delay
+      setTimeout(() => {
+        navigation.navigate('Auth');
+      }, 2000);
     } catch (error: any) {
       alertRef.current?.show({ title: 'Error', message: error.message, type: 'error' });
     } finally {
@@ -40,58 +47,40 @@ export const ResetPasswordScreen: React.FC<ResetPasswordScreenProps> = ({ naviga
   };
 
   return (
-    <View style={styles.container}>
-      <Image source={require('../assets/Logo-Santa-Clara-Bekasi-Transparant.png')} style={styles.logo} />
-      <Text style={styles.title}>Reset Password</Text>
-      <Text style={styles.subtitle}>Enter your new password.</Text>
-      <Input
-        placeholder="New Password"
-        value={newPassword}
-        onChangeText={setNewPassword}
-        secureTextEntry
-        error={errors.newPassword}
-      />
-      <Input
-        placeholder="Confirm New Password"
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        secureTextEntry
-        error={errors.confirmPassword}
-      />
-      <Button title="Reset Password" onPress={handleResetPassword} loading={loading} />
-      <Button
-        title="Back to Login"
-        onPress={() => navigation.navigate('Auth')}
-        variant="secondary"
-      />
+    <View style={theme.container}>
+      <View style={theme.card}>
+        <Image source={require('../assets/Logo-Santa-Clara-Bekasi-Transparant.png')} style={theme.logo} />
+        <Text style={theme.title}>Reset Password</Text>
+        <Text style={theme.subtitle}>Masukkan password baru Anda.</Text>
+        <View style={theme.inputContainer}>
+          <Input
+            placeholder="Password Baru"
+            value={newPassword}
+            onChangeText={setNewPassword}
+            secureTextEntry
+            error={errors.newPassword}
+          />
+        </View>
+        <View style={theme.inputContainer}>
+          <Input
+            placeholder="Konfirmasi Password Baru"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry
+            error={errors.confirmPassword}
+          />
+        </View>
+        <Button title="Reset Password" onPress={handleResetPassword} loading={loading} variant="gradient" />
+        <Button
+          title="Kembali ke Login"
+          onPress={async () => {
+            await AsyncStorage.removeItem('needsPasswordReset');
+            navigation.navigate('Auth');
+          }}
+          variant="secondary"
+        />
+      </View>
       <CustomAlert ref={alertRef} />
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#fff',
-  },
-  logo: {
-    width: 100,
-    height: 100,
-    alignSelf: 'center',
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 20,
-    color: '#666',
-  },
-});

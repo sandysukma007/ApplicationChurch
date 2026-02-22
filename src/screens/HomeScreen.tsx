@@ -81,7 +81,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             onPress: async () => {
               try {
                 await logout();
-                navigation.replace('Login');
+                // Navigate to Auth (Login) screen - the logout function already clears the password reset flag
+                navigation.navigate('Auth');
               } catch (error: any) {
                 console.error('Logout error:', error);
                 Alert.alert('Error', 'Gagal logout. Silakan coba lagi.');
@@ -251,7 +252,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           onPress: async () => {
             try {
               await logout();
-              navigation.replace('Login');
+              // Navigate to Auth (Login) screen - the logout function already clears the password reset flag
+              navigation.navigate('Auth');
             } catch (error: any) {
               console.error('Logout error:', error);
               Alert.alert('Error', 'Gagal logout. Silakan coba lagi.');
@@ -356,10 +358,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                   </Text>
                   <View style={styles.reservationDetails}>
                     <Text style={styles.reservationDetail}>
-                      📍 {reservation.floor_quota?.floor_name || '-'}
+                      {reservation.floor_quota?.floor_name || '-'}
                     </Text>
                     <Text style={styles.reservationDetail}>
-                      👥 {reservation.number_of_people} orang
+                      {reservation.number_of_people} orang
                     </Text>
                   </View>
                 </View>
@@ -451,52 +453,46 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             <View style={styles.menuGrid}>
               {[
                 { title: 'Jadwal Misa', icon: 'event', screen: 'Masses', gradient: ['#4299e1', '#3182ce'] },
-                { title: 'Donasi', icon: 'attach_money', screen: 'Donations', gradient: ['#48bb78', '#38a169'] },
+                { title: 'Donasi', icon: 'attach-money', screen: 'Donations', gradient: ['#48bb78', '#38a169'] },
                 { title: 'Profil', icon: 'person', screen: 'Profile', gradient: ['#ed8936', '#dd6b20'] },
                 { title: 'Pengumuman', icon: 'campaign', screen: 'Announcements', gradient: ['#9f7aea', '#805ad5'] },
-                { title: 'Media', icon: 'play_circle_filled', screen: 'Media', gradient: ['#f56565', '#e53e3e'] },
+                { title: 'Media', icon: 'play-circle-filled', screen: 'Media', gradient: ['#f56565', '#e53e3e'] },
                 { title: 'Kumpulan Formulir', icon: 'description', screen: 'KumpulanFormulir', gradient: ['#ed8936', '#dd6b20'] },
                 { title: 'Profile Gereja', icon: 'church', screen: 'ProfileGereja', gradient: ['#805ad5', '#6b46c1'] },
                 { title: 'Ubah Password', icon: 'lock', screen: 'ChangePassword', gradient: ['#718096', '#4a5568'] },
-              ].map((item, index) => {
-                let iconName = item.icon;
-                // Fix icon names for MaterialIcons
-                if (item.icon === 'play_circle_filled') iconName = 'play-circle-filled';
-                if (item.icon === 'attach_money') iconName = 'attach-money';
-                return (
-                  <TouchableOpacity
-                    key={item.title}
-                    style={styles.menuItem}
-                    activeOpacity={0.8}
-                    onPress={() => navigation.navigate(item.screen)}
+              ].map((item, index) => (
+                <TouchableOpacity
+                  key={item.title}
+                  style={styles.menuItem}
+                  activeOpacity={0.8}
+                  onPress={() => navigation.navigate(item.screen)}
+                >
+                  <Animated.View
+                    style={[
+                      styles.menuIconWrapper,
+                      {
+                        opacity: fadeAnim,
+                        transform: [{
+                          scale: fadeAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [0.8, 1]
+                          })
+                        }]
+                      }
+                    ]}
                   >
-                    <Animated.View
-                      style={[
-                        styles.menuIconWrapper,
-                        {
-                          opacity: fadeAnim,
-                          transform: [{
-                            scale: fadeAnim.interpolate({
-                              inputRange: [0, 1],
-                              outputRange: [0.8, 1]
-                            })
-                          }]
-                        }
-                      ]}
+                    <LinearGradient
+                      colors={item.gradient}
+                      style={styles.menuIconContainer}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
                     >
-                      <LinearGradient
-                        colors={item.gradient}
-                        style={styles.menuIconContainer}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                      >
-                        <Icon name={iconName} size={32} color={colors.white} />
-                      </LinearGradient>
-                    </Animated.View>
-                    <Text style={styles.menuItemText}>{item.title}</Text>
-                  </TouchableOpacity>
-                );
-              })}
+                      <Icon name={item.icon} size={32} color={colors.white} />
+                    </LinearGradient>
+                  </Animated.View>
+                  <Text style={styles.menuItemText}>{item.title}</Text>
+                </TouchableOpacity>
+              ))}
             </View>
           </View>
 

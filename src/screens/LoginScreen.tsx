@@ -25,8 +25,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
   const validate = () => {
     const newErrors: { email?: string; password?: string } = {};
-    if (!email) newErrors.email = 'Email is required';
-    if (!password) newErrors.password = 'Password is required';
+    if (!email) newErrors.email = 'Email wajib diisi';
+    if (!password) newErrors.password = 'Password wajib diisi';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -70,10 +70,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
         </View>
         <Button title="Login" onPress={handleLogin} loading={loading} variant="gradient" />
         <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
-          <Text style={theme.link}>Forgot Password?</Text>
+          <Text style={theme.link}>Lupa Password?</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-          <Text style={theme.link}>Don't have an account? Register</Text>
+          <Text style={theme.link}>Belum punya akun? Daftar</Text>
         </TouchableOpacity>
       </View>
       <CustomAlert ref={alertRef} />

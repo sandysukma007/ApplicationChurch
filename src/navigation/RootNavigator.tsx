@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, CommonActions } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthNavigator } from './AuthNavigator';
@@ -37,8 +37,10 @@ export const RootNavigator: React.FC = () => {
       const { data: { session } } = await supabase.auth.getSession();
       const currentUser = mapSessionToUser(session);
       const needs = await AsyncStorage.getItem('needsPasswordReset');
-      if (needs === 'true') {
+      if (needs === 'true' && currentUser) {
         setNeedsReset(true);
+      } else if (needs === 'true') {
+        // Clear stale flag if no user
         await AsyncStorage.removeItem('needsPasswordReset');
       }
       setUser(currentUser);
@@ -50,14 +52,17 @@ export const RootNavigator: React.FC = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         const currentUser = mapSessionToUser(session);
-        setUser(currentUser);
 
-        // Check for password reset flag when auth state changes
-        if (currentUser) {
-          const needs = await AsyncStorage.getItem('needsPasswordReset');
-          if (needs === 'true') {
-            setNeedsReset(true);
-            await AsyncStorage.removeItem('needsPasswordReset');
+        // Only update user and navigate on relevant events
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
+          setUser(currentUser);
+
+          // Check for password reset flag when auth state changes to signed in
+          if (currentUser) {
+            const needs = await AsyncStorage.getItem('needsPasswordReset');
+            if (needs === 'true') {
+              setNeedsReset(true);
+            }
           }
         }
       }
@@ -66,13 +71,17 @@ export const RootNavigator: React.FC = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Handle navigation based on auth state
   useEffect(() => {
     if (!loading && navigationRef.current) {
       if (user && needsReset) {
+        // User is logged in and needs to reset password
         navigationRef.current.navigate('ResetPassword');
       } else if (user) {
+        // User is logged in, go to main app
         navigationRef.current.navigate('Main');
       } else {
+        // User is not logged in, go to auth (login)
         navigationRef.current.navigate('Auth');
       }
     }

@@ -5,6 +5,7 @@ import { Input } from '../components/Input';
 import { Button } from '../components/Button';
 import { CustomAlert, CustomAlertRef } from '../components/CustomAlert';
 import { verifyCode } from '../utils/auth';
+import { theme } from '../styles/theme';
 
 interface VerifyCodeScreenProps {
   navigation: any;
@@ -20,8 +21,8 @@ export const VerifyCodeScreen: React.FC<VerifyCodeScreenProps> = ({ navigation, 
 
   const validate = () => {
     const newErrors: { code?: string } = {};
-    if (!code) newErrors.code = 'Verification code is required';
-    if (code.length !== 8) newErrors.code = 'Code must be 8 digits';
+    if (!code) newErrors.code = 'Kode verifikasi wajib diisi';
+    if (code.length !== 8) newErrors.code = 'Kode harus 8 digit';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -32,18 +33,26 @@ export const VerifyCodeScreen: React.FC<VerifyCodeScreenProps> = ({ navigation, 
     try {
       // Check if this is for password reset or registration
       const isPasswordReset = route.params?.isPasswordReset;
+
+      // IMPORTANT: Set flag BEFORE verifying code for password reset
+      // This ensures RootNavigator sees the flag when auth state changes to logged in
+      if (isPasswordReset) {
+        await AsyncStorage.setItem('needsPasswordReset', 'true');
+      }
+
       const type = isPasswordReset ? 'recovery' : 'signup';
       await verifyCode(email, code, type);
+
       if (isPasswordReset) {
-        // Set flag for password reset flow
-        await AsyncStorage.setItem('needsPasswordReset', 'true');
-        alertRef.current?.show({ title: 'Success', message: 'Code verified! Please reset your password.', type: 'success' });
-        // Navigation will be handled by RootNavigator
+        alertRef.current?.show({ title: 'Berhasil', message: 'Kode verifikasi benar! Silakan reset password Anda.', type: 'success' });
+        // Navigation will be handled by RootNavigator - it will see user + needsReset flag
       } else {
-        alertRef.current?.show({ title: 'Success', message: 'Email verified! You can now log in.', type: 'success' });
+        alertRef.current?.show({ title: 'Berhasil', message: 'Email berhasil diverifikasi! Silakan login.', type: 'success' });
         navigation.navigate('Login');
       }
     } catch (error: any) {
+      // Clear the flag if verification fails
+      await AsyncStorage.removeItem('needsPasswordReset');
       alertRef.current?.show({ title: 'Error', message: error.message, type: 'error' });
     } finally {
       setLoading(false);
@@ -51,52 +60,29 @@ export const VerifyCodeScreen: React.FC<VerifyCodeScreenProps> = ({ navigation, 
   };
 
   return (
-    <View style={styles.container}>
-      <Image source={require('../assets/Logo-Santa-Clara-Bekasi-Transparant.png')} style={styles.logo} />
-      <Text style={styles.title}>Verify Code</Text>
-      <Text style={styles.subtitle}>Enter the 8-digit code sent to your email.</Text>
-      <Input
-        placeholder="Verification Code"
-        value={code}
-        onChangeText={setCode}
-        keyboardType="numeric"
-        maxLength={8}
-        error={errors.code}
-      />
-      <Button title="Verify Code" onPress={handleVerifyCode} loading={loading} />
-      <Button
-        title="Back to Forgot Password"
-        onPress={() => navigation.goBack()}
-        variant="secondary"
-      />
+    <View style={theme.container}>
+      <View style={theme.card}>
+        <Image source={require('../assets/Logo-Santa-Clara-Bekasi-Transparant.png')} style={theme.logo} />
+        <Text style={theme.title}>Verifikasi Kode</Text>
+        <Text style={theme.subtitle}>Masukkan kode 8 digit yang dikirim ke email Anda.</Text>
+        <View style={theme.inputContainer}>
+          <Input
+            placeholder="Kode Verifikasi"
+            value={code}
+            onChangeText={setCode}
+            keyboardType="numeric"
+            maxLength={8}
+            error={errors.code}
+          />
+        </View>
+        <Button title="Verifikasi Kode" onPress={handleVerifyCode} loading={loading} variant="gradient" />
+        <Button
+          title="Kembali ke Lupa Password"
+          onPress={() => navigation.goBack()}
+          variant="secondary"
+        />
+      </View>
       <CustomAlert ref={alertRef} />
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#fff',
-  },
-  logo: {
-    width: 100,
-    height: 100,
-    alignSelf: 'center',
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 20,
-    color: '#666',
-  },
-});

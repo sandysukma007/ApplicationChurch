@@ -32,10 +32,11 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
       confirmPassword?: string;
       fullName?: string;
     } = {};
-    if (!email) newErrors.email = 'Email is required';
-    if (!password) newErrors.password = 'Password is required';
-    if (password !== confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
-    if (!fullName) newErrors.fullName = 'Full name is required';
+    if (!email) newErrors.email = 'Email wajib diisi';
+    if (!password) newErrors.password = 'Password wajib diisi';
+    if (password.length < 6) newErrors.password = 'Password minimal 6 karakter';
+    if (password !== confirmPassword) newErrors.confirmPassword = 'Password tidak cocok';
+    if (!fullName) newErrors.fullName = 'Nama lengkap wajib diisi';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -46,8 +47,10 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
     try {
       const data: RegisterData = { email, password, full_name: fullName, role: 'jemaat' };
       await register(data);
-      alertRef.current?.show({ title: 'Success', message: 'Registration successful! You can now log in.', type: 'success' });
-      navigation.navigate('Login');
+      alertRef.current?.show({ title: 'Berhasil', message: 'Pendaftaran berhasil! Silakan login.', type: 'success' });
+      setTimeout(() => {
+        navigation.navigate('Login');
+      }, 1500);
     } catch (error: any) {
       alertRef.current?.show({ title: 'Error', message: error.message, type: 'error' });
     } finally {
@@ -60,10 +63,10 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
       <ScrollView>
         <View style={theme.card}>
           <Image source={require('../assets/Logo-Santa-Clara-Bekasi-Transparant.png')} style={theme.logo} />
-          <Text style={theme.title}>Register</Text>
+          <Text style={theme.title}>Daftar Akun</Text>
           <View style={theme.inputContainer}>
             <Input
-              placeholder="Full Name"
+              placeholder="Nama Lengkap"
               value={fullName}
               onChangeText={setFullName}
               error={errors.fullName}
@@ -89,7 +92,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
           </View>
           <View style={theme.inputContainer}>
             <Input
-              placeholder="Confirm Password"
+              placeholder="Konfirmasi Password"
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry
@@ -97,9 +100,9 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
             />
           </View>
 
-          <Button title="Register" onPress={handleRegister} loading={loading} variant="gradient" />
+          <Button title="Daftar" onPress={handleRegister} loading={loading} variant="gradient" />
           <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-            <Text style={theme.link}>Already have an account? Login</Text>
+            <Text style={theme.link}>Sudah punya akun? Login</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

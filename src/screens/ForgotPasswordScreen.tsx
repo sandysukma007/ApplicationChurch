@@ -18,7 +18,7 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navi
 
   const validate = () => {
     const newErrors: { email?: string } = {};
-    if (!email) newErrors.email = 'Email is required';
+    if (!email) newErrors.email = 'Email wajib diisi';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -28,8 +28,10 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navi
     setLoading(true);
     try {
       await sendVerificationCode(email);
-      alertRef.current?.show({ title: 'Success', message: 'Verification code sent! Please check your email.', type: 'success' });
-      navigation.navigate('VerifyCode', { email, isPasswordReset: true });
+      alertRef.current?.show({ title: 'Berhasil', message: 'Kode verifikasi telah dikirim! Silakan cek email Anda.', type: 'success' });
+      setTimeout(() => {
+        navigation.navigate('VerifyCode', { email, isPasswordReset: true });
+      }, 1500);
     } catch (error: any) {
       alertRef.current?.show({ title: 'Error', message: error.message, type: 'error' });
     } finally {
@@ -41,8 +43,8 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navi
     <View style={theme.container}>
       <View style={theme.card}>
         <Image source={require('../assets/Logo-Santa-Clara-Bekasi-Transparant.png')} style={theme.logo} />
-        <Text style={theme.title}>Forgot Password</Text>
-        <Text style={theme.subtitle}>Enter your email to receive a verification code.</Text>
+        <Text style={theme.title}>Lupa Password</Text>
+        <Text style={theme.subtitle}>Masukkan email Anda untuk menerima kode verifikasi.</Text>
         <View style={theme.inputContainer}>
           <Input
             placeholder="Email"
@@ -52,9 +54,9 @@ export const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ navi
             error={errors.email}
           />
         </View>
-        <Button title="Send Verification Code" onPress={handleForgotPassword} loading={loading} variant="gradient" />
+        <Button title="Kirim Kode Verifikasi" onPress={handleForgotPassword} loading={loading} variant="gradient" />
         <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-          <Text style={theme.link}>Back to Login</Text>
+          <Text style={theme.link}>Kembali ke Login</Text>
         </TouchableOpacity>
       </View>
       <CustomAlert ref={alertRef} />

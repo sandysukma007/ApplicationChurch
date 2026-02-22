@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../supabaseClient';
 import { LoginCredentials, RegisterData } from '../types';
 
@@ -83,6 +84,8 @@ export const resetPassword = async (newPassword: string) => {
 };
 
 export const logout = async () => {
+  // Clear password reset flag on logout
+  await AsyncStorage.removeItem('needsPasswordReset');
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
 };
